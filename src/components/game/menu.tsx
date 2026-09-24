@@ -113,7 +113,7 @@ export function GameMenu({
       {tab === "menu" && (
         <div className="grid gap-2 pb-4">
           <PreferenceToggles />
-          <Toggle checked={prefs.tableView} onChange={(v) => setPrefs({ tableView: v })} label={`🟩 ${t("tableView")}`} testId="table-view-toggle" />
+          <Toggle checked={prefs.view === "table"} onChange={(v) => setPrefs({ view: v ? "table" : "players" })} label={`🟩 ${t("tableView")}`} testId="table-view-toggle" />
           {isHost && inMatch && (
             <div className="mt-2 grid grid-cols-2 gap-2">
               <GameButton size="md" variant="dark" onClick={() => send({ type: state.paused ? "RESUME" : "PAUSE" })}>

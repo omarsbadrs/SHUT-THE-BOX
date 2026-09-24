@@ -72,7 +72,17 @@ for (const vp of PHONES) {
         async () => {
           await page.goto(`/room/${code}`);
           await page.getByTestId("start-game").click();
-          await expect(page.getByTestId("game-view")).toBeVisible();
+          await expect(page.getByTestId("game-view")).toHaveAttribute("data-phase", "PLAYER_TURN", { timeout: 20_000 });
+          // Tallest state: my turn, dice rolled, choosing tiles.
+          await page.evaluate(async (c) => {
+            const post = (body: unknown) =>
+              fetch(`/api/rooms/${c}/command`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command: body, commandId: crypto.randomUUID() }) });
+            const me = (await (await fetch(`/api/rooms/${c}/state`)).json()).me;
+            await post({ type: "DEV_SET_TURN", playerId: me });
+            await post({ type: "DEV_FORCE_DICE", dice: [[3, 5]] });
+          }, code);
+          await page.getByTestId("roll-button").click();
+          await expect(page.getByTestId("choose-prompt")).toBeVisible();
         },
       ],
     ];
@@ -82,6 +92,16 @@ for (const vp of PHONES) {
       const r = await horizontalOverflow(page);
       expect.soft(r.offenders, `${name} @${vp.width}px has elements past the screen edge`).toEqual([]);
       expect.soft(r.scrollWidth, `${name} @${vp.width}px scrolls sideways`).toBeLessThanOrEqual(r.vw);
+    }
+    // The game screen must fit the phone with no vertical scrolling, in both views.
+    for (const view of ["table", "players"]) {
+      if ((await page.getByTestId("game-view").getAttribute("data-view")) !== view) await page.getByTestId("view-toggle").click();
+      await expect(page.getByTestId("game-view")).toHaveAttribute("data-view", view);
+      await page.waitForTimeout(300);
+      const v = await page.evaluate(() => ({ sh: document.documentElement.scrollHeight, vh: window.innerHeight }));
+      expect.soft(v.sh, `game (${view} view) @${vp.width}x${vp.height} scrolls vertically`).toBeLessThanOrEqual(v.vh);
+      const close = await page.getByTestId("close-tiles").boundingBox();
+      expect.soft(close && close.y + close.height <= v.vh, `CLOSE TILES visible in ${view} view @${vp.width}x${vp.height}`).toBe(true);
     }
     // Arabic (RTL) create page too.
     await context.addCookies([{ name: "s10_lang", value: "ar", url: test.info().project.use.baseURL as string }]);

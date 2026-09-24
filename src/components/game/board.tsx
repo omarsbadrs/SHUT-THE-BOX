@@ -54,12 +54,23 @@ export function Board({ color, openTiles, selected = [], hinted = [], interactiv
 }
 
 /** Compact strip for opponents: 1 2 X X 5 … */
-export function MiniBoard({ color, openTiles, className = "" }: { color: PlayerColor; openTiles: readonly number[]; className?: string }) {
+export function MiniBoard({
+  color,
+  openTiles,
+  className = "",
+  vertical = false,
+}: {
+  color: PlayerColor;
+  openTiles: readonly number[];
+  className?: string;
+  /** 1 on top → 10 at the bottom, stretched to the available height (side seats of the table). */
+  vertical?: boolean;
+}) {
   const { n } = useI18n();
   const c = PLAYER_STYLE[color];
   const open = new Set(openTiles);
   return (
-    <div className={`grid grid-cols-10 gap-[3px] ${className}`}>
+    <div className={`grid gap-[3px] ${vertical ? "grid-rows-10" : "grid-cols-10"} ${className}`}>
       {TILE_VALUES.map((v) => {
         const isOpen = open.has(v);
         return (
@@ -76,7 +87,7 @@ export function MiniBoard({ color, openTiles, className = "" }: { color: PlayerC
               color: isOpen ? c.text : "rgba(255,255,255,.35)",
               boxShadow: isOpen ? `0 2px 0 ${c.dark}` : "inset 0 1px 3px rgba(0,0,0,.6)",
             }}
-            className="flex aspect-[4/5] items-center justify-center rounded-[4px] text-[10px] leading-none font-extrabold"
+            className={`flex min-h-0 items-center justify-center rounded-[4px] text-[10px] leading-none font-extrabold ${vertical ? "" : "aspect-[4/5]"}`}
           >
             {isOpen ? n(v) : "✕"}
           </motion.div>

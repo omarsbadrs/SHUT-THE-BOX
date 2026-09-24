@@ -10,12 +10,13 @@ export interface Prefs {
   color: PlayerColor | null;
   sound: boolean;
   haptics: boolean;
-  tableView: boolean;
+  /** In-game layout: the four-sided table (default) or stacked player strips. */
+  view: "table" | "players";
   trainer: boolean;
 }
 
 const KEY = "s10_prefs";
-const DEFAULTS: Prefs = { nickname: "", avatar: "🦊", color: null, sound: true, haptics: true, tableView: false, trainer: true };
+const DEFAULTS: Prefs = { nickname: "", avatar: "🦊", color: null, sound: true, haptics: true, view: "table", trainer: true };
 
 let cache: Prefs | null = null;
 const listeners = new Set<() => void>();

@@ -21,7 +21,7 @@ import {
   type RoomState,
 } from "@/game-engine";
 import { haptic, sfx, unlockAudio } from "@/lib/client/feedback";
-import { usePrefs } from "@/lib/client/prefs";
+import { setPrefs, usePrefs } from "@/lib/client/prefs";
 import type { RoomHandle } from "@/lib/client/use-room";
 import { useI18n } from "@/lib/i18n/context";
 import { useErrorText, useServerNow, useToast } from "../ui/hooks";
@@ -73,6 +73,8 @@ export function GameView({ room }: { room: RoomHandle }) {
 
   const myPlayer = getPlayer(state, me);
   const myRound = me ? round?.players[me] : undefined;
+  const tableMode = room.spectator || !me || prefs.view === "table";
+  const diceSize = tableMode ? 42 : 50;
   const isHost = !!me && state.hostId === me;
   const turnBased = isTurnBased(settings.gameMode);
   const pending = myRound?.pending ?? null;
@@ -282,11 +284,11 @@ export function GameView({ room }: { room: RoomHandle }) {
             {isMine || rollingLocal ? t("yourRoll") : t("rolled", { name: focusPlayer?.nickname.toUpperCase() ?? "" })}
           </div>
           <div className="flex items-center gap-3">
-            <Die value={dice?.die1 ?? 1} color={rollingLocal ? myPlayer?.color ?? diceColor : diceColor} rollKey={dice?.turnId ?? null} shaking={rollingLocal && !dice} size={50} testId="die-1" />
+            <Die value={dice?.die1 ?? 1} color={rollingLocal ? myPlayer?.color ?? diceColor : diceColor} rollKey={dice?.turnId ?? null} shaking={rollingLocal && !dice} size={diceSize} testId="die-1" />
             {(rollingLocal ? effectiveDice === 2 : dice?.die2 !== null) && (
               <>
                 <span className="text-2xl font-extrabold text-white/50">+</span>
-                <Die value={dice?.die2 ?? 1} color={rollingLocal ? myPlayer?.color ?? diceColor : diceColor} rollKey={dice?.turnId ?? null} shaking={rollingLocal && !dice} size={50} testId="die-2" />
+                <Die value={dice?.die2 ?? 1} color={rollingLocal ? myPlayer?.color ?? diceColor : diceColor} rollKey={dice?.turnId ?? null} shaking={rollingLocal && !dice} size={diceSize} testId="die-2" />
               </>
             )}
             {dice && (
@@ -339,7 +341,7 @@ export function GameView({ room }: { room: RoomHandle }) {
     } else if (focusPlayer && turnBased) {
       status = (
         <div className="flex flex-col items-center gap-2" data-testid="waiting-turn">
-          <div className="text-2xl font-extrabold tracking-wide" style={{ color: PLAYER_STYLE[focusPlayer.color].light }}>
+          <div className="text-center text-xl leading-tight font-extrabold tracking-wide" style={{ color: PLAYER_STYLE[focusPlayer.color].light }}>
             {t("isRolling", { name: focusPlayer.nickname.toUpperCase() })}
           </div>
           <Countdown deadline={focus?.deadlineAt ?? null} now={now} />
@@ -357,14 +359,32 @@ export function GameView({ room }: { room: RoomHandle }) {
     ) : null;
 
   const reconnectingName = state.players.find((p) => p.connection === "reconnecting" && p.id !== me && match.playerIds.includes(p.id))?.nickname ?? null;
-  const showTable = room.spectator || !me || prefs.tableView;
   // Keep the whole game on one phone screen: the board shrinks to the height left over.
   const opponentCount = match.playerIds.filter((id) => id !== me).length;
-  const boardReserve = 290 + (showTable ? 360 : opponentCount * 58);
+  const boardReserve = 300 + opponentCount * 58;
   const hintsLeft = settings.hints === "limited" ? Math.max(0, HINTS_PER_ROUND_LIMITED - (myRound?.hintsUsed ?? 0)) : null;
 
+  const statusBlock = (
+    <>
+      {status}
+      {myStatusNote}
+      <AnimatePresence>
+        {banner && (
+          <motion.div key={banner.key} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }} className="absolute bottom-1 rounded-full bg-[#ffcf4a] px-3 py-1 text-xs font-extrabold text-[#2a1a00]">
+            {banner.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[520px] flex-col px-3 safe-top safe-bottom" data-testid="game-view" data-phase={phase}>
+    <div
+      className={`mx-auto flex w-full max-w-[520px] flex-col px-3 safe-top safe-bottom ${tableMode ? "h-dvh overflow-hidden" : "min-h-dvh"}`}
+      data-testid="game-view"
+      data-phase={phase}
+      data-view={tableMode ? "table" : "players"}
+    >
       <Toast message={toast.message} />
       {/* TOP BAR */}
       <header className="mb-1.5 flex items-center gap-2">
@@ -384,32 +404,50 @@ export function GameView({ room }: { room: RoomHandle }) {
         ) : (
           <span className="rounded-xl bg-white/10 px-2 py-1 text-xs font-extrabold">{t("spectating")}</span>
         )}
+        <button
+          type="button"
+          aria-label={tableMode ? t("playerView") : t("tableView")}
+          title={tableMode ? t("playerView") : t("tableView")}
+          onClick={() => setPrefs({ view: tableMode ? "players" : "table" })}
+          className="glass flex h-10 w-10 items-center justify-center rounded-xl"
+          data-testid="view-toggle"
+        >
+          {tableMode ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" />
+            </svg>
+          )}
+        </button>
         <button type="button" aria-label={t("settings")} onClick={() => setMenuOpen(true)} className="glass h-10 w-10 rounded-xl text-lg" data-testid="menu-button">
-          ☰
+          ⚙
         </button>
       </header>
 
       <ConnectionBanner net={room.net} restoredAt={room.restoredAt} reconnectingName={reconnectingName} />
 
-      {/* OPPONENTS / TABLE */}
-      {showTable ? <TableView state={state} /> : <Opponents state={state} me={me} presence={room.presence} />}
-
-      {/* STATUS */}
-      <div className="relative flex min-h-[100px] flex-1 flex-col items-center justify-center gap-1 py-2">
-        {status}
-        {myStatusNote}
-        <AnimatePresence>
-          {banner && (
-            <motion.div key={banner.key} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }} className="absolute bottom-1 rounded-full bg-[#ffcf4a] px-3 py-1 text-xs font-extrabold text-[#2a1a00]">
-              {banner.text}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      {tableMode ? (
+        /* TABLE: fills the height left over; dice + turn status sit in the center tray */
+        <div className="min-h-0 flex-1 pb-1.5">
+          <TableView state={state} me={room.spectator ? null : me} presence={room.presence} center={statusBlock} />
+        </div>
+      ) : (
+        <>
+          <Opponents state={state} me={me} presence={room.presence} />
+          <div className="relative flex min-h-[100px] flex-1 flex-col items-center justify-center gap-1 py-2">{statusBlock}</div>
+        </>
+      )}
 
       {/* MY BOARD */}
       {myPlayer && myRound && !room.spectator && (
-        <div className="mx-auto mb-2 w-full" style={{ maxWidth: `min(100%, calc((100dvh - ${boardReserve}px) * 1.8))` }}>
+        <div
+          className="mx-auto mb-2 w-full shrink-0"
+          style={{ maxWidth: tableMode ? "min(100%, calc(28dvh * 2.1))" : `min(100%, calc((100dvh - ${boardReserve}px) * 1.8))` }}
+        >
           <Board
             color={myPlayer.color}
             openTiles={hideTiles ? [] : myRound.openTiles}
@@ -424,7 +462,7 @@ export function GameView({ room }: { room: RoomHandle }) {
 
       {/* ACTIONS */}
       {me && !room.spectator && (
-        <div className="min-h-[64px] pb-1">
+        <div className="min-h-[64px] shrink-0 pb-1">
           {iCanSelect && pending ? (
             <div className="grid gap-2">
               <div className="flex items-center justify-center gap-2 text-center text-sm font-extrabold" data-testid="selection-readout">
