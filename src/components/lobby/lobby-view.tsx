@@ -12,6 +12,7 @@ import { ColorIcon, PLAYER_STYLE } from "../game/theme";
 import { PreferenceToggles } from "../game/menu";
 import { useErrorText, useToast } from "../ui/hooks";
 import { GameButton, Sheet, Toast } from "../ui/primitives";
+import { Wizard, type WizardStep } from "../ui/wizard";
 import { InvitePanel } from "./invite";
 
 /** Seat positions around the table, matching the physical set. */
@@ -34,6 +35,8 @@ function Seat({
 }) {
   const { t } = useI18n();
   const c = PLAYER_STYLE[color];
+  // Top and bottom seats span the table: laid out in a row so the table stays short.
+  const wide = SEAT_AREA[color] === "top" || SEAT_AREA[color] === "bottom";
   return (
     <motion.button
       type="button"
@@ -42,7 +45,7 @@ function Seat({
       data-testid={`seat-${color}`}
       data-occupied={player ? "yes" : "no"}
       whileTap={{ scale: 0.96 }}
-      className="flex w-full flex-col items-center gap-1 rounded-2xl p-2 text-center"
+      className={`flex min-h-0 w-full min-w-0 items-center justify-center rounded-2xl p-1.5 text-center ${wide ? "flex-row gap-2" : "flex-col gap-0.5"}`}
       style={{
         gridArea: SEAT_AREA[color],
         background: player ? `linear-gradient(180deg, ${c.base}cc, ${c.dark}ee)` : "rgba(0,0,0,.28)",
@@ -52,13 +55,15 @@ function Seat({
     >
       {player ? (
         <>
-          <Avatar player={player} size={38} />
-          <div className="flex max-w-full items-center gap-1 text-sm leading-tight font-extrabold" style={{ color: c.text }}>
+          <div className="relative shrink-0">
+            <Avatar player={player} size={wide ? 30 : 32} />
+            {isHost && <span className="absolute -top-2 -end-2 text-sm">👑</span>}
+          </div>
+          <div className="flex min-w-0 max-w-full items-center gap-1 text-[13px] leading-tight font-extrabold" style={{ color: c.text }}>
             <span className="truncate">{player.nickname}</span>
             <ConnectionDot status={player.connection} presence={presence} />
           </div>
-          <div className="flex flex-wrap justify-center gap-1 text-[9px] font-extrabold tracking-wider">
-            {isHost && <span className="rounded bg-[#ffcf4a] px-1 text-[#2a1a00]">👑 {t("host")}</span>}
+          <div className="flex shrink-0 flex-wrap justify-center gap-1 text-[9px] font-extrabold tracking-wider">
             {player.isBot && <span className="rounded bg-black/40 px-1 text-white">{t("bot")}</span>}
             <span className={`rounded px-1 ${player.isReady ? "bg-emerald-400 text-emerald-950" : "bg-black/40 text-white/80"}`} data-testid={`ready-${color}`}>
               {player.isReady ? t("ready") : t("notReady")}
@@ -67,8 +72,8 @@ function Seat({
         </>
       ) : (
         <>
-          <ColorIcon color={color} size={22} />
-          <div className="text-xs font-extrabold" style={{ color: c.light }}>
+          <ColorIcon color={color} size={20} />
+          <div className="text-[11px] font-extrabold" style={{ color: c.light }}>
             {t(color)}
           </div>
           <div className="text-[10px] font-bold text-white/50">{t("openSlot")}</div>
@@ -78,17 +83,17 @@ function Seat({
   );
 }
 
-/** Shared lobby for every game; the game supplies its settings summary, editor and dev tools. */
+/** Shared lobby for every game; the game supplies its settings summary, editor steps and dev tools. Always fits one screen. */
 export function LobbyView({
   room,
   summary,
-  renderEditor,
+  editorSteps,
   devPanel,
   title,
 }: {
   room: RoomHandle;
   summary: ReactNode;
-  renderEditor: (draft: Record<string, unknown>, setDraft: (d: Record<string, unknown>) => void) => ReactNode;
+  editorSteps: (draft: Record<string, unknown>, setDraft: (d: Record<string, unknown>) => void) => WizardStep[];
   devPanel?: ReactNode;
   title?: string;
 }) {
@@ -100,6 +105,7 @@ export function LobbyView({
   const toast = useToast();
   const errText = useErrorText();
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [saving, setSaving] = useState(false);
   const [seatMenu, setSeatMenu] = useState<RoomPlayer | null>(null);
   const [menu, setMenu] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -134,43 +140,58 @@ export function LobbyView({
     router.push("/");
   };
 
+  const save = async () => {
+    if (!editing) return;
+    setSaving(true);
+    const res = await send({ type: "UPDATE_SETTINGS", settings: editing } as AnyCommand);
+    setSaving(false);
+    if (res.ok) setEditing(null);
+  };
+
+  // The host is ready by default; only show their button if they un-readied.
+  const showReady = mine && (!isHost || !mine.isReady);
+
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[520px] flex-col gap-4 px-4 safe-top safe-bottom" data-testid="lobby">
+    <div className="mx-auto flex h-dvh w-full max-w-[520px] flex-col gap-2.5 overflow-hidden px-4 safe-top safe-bottom" data-testid="lobby">
       <Toast message={toast.message} />
-      <header className="flex items-center justify-between">
+      <header className="flex shrink-0 items-center justify-between pt-1">
         <button type="button" onClick={leave} className="glass rounded-xl px-3 py-2 text-sm font-bold">
           ← {t("leaveRoom")}
         </button>
-        <span className="text-sm font-extrabold tracking-[0.25em] text-white/70" data-testid="lobby-title">{title ?? t("lobby")}</span>
-        <button type="button" onClick={() => setMenu(true)} className="glass h-10 w-10 rounded-xl" aria-label={t("settings")}>
+        <span className="truncate px-2 text-sm font-extrabold tracking-[0.25em] text-white/70" data-testid="lobby-title">
+          {title ?? t("lobby")}
+        </span>
+        <button type="button" onClick={() => setMenu(true)} className="glass h-10 w-10 shrink-0 rounded-xl" aria-label={t("settings")}>
           ☰
         </button>
       </header>
 
       <InvitePanel code={state.code} />
 
-      {/* Four-sided table */}
-      <div className="wood rounded-[28px] p-2.5">
+      {/* Four-sided table: takes the height that is left, capped so tall phones don't get giant empty seats */}
+      <div className="flex min-h-[170px] flex-1 flex-col justify-center">
+      <div className="wood flex h-full max-h-[340px] min-h-0 rounded-[26px] p-2">
         <div
-          className="felt grid gap-2 rounded-[20px] p-2.5"
-          style={{ gridTemplateAreas: `". top ." "left center right" ". bottom ."`, gridTemplateColumns: "1fr 1.1fr 1fr" }}
+          className="felt grid min-h-0 w-full flex-1 gap-1.5 rounded-[20px] p-2"
+          style={{ gridTemplateAreas: `"top top top" "left center right" "bottom bottom bottom"`, gridTemplateColumns: "1fr 0.9fr 1fr", gridTemplateRows: "minmax(0,0.8fr) minmax(0,1.2fr) minmax(0,0.8fr)" }}
         >
           {COLORS.map((c) => {
             const p = players.find((x) => x.color === c);
             return <Seat key={c} color={c} player={p} isHost={!!p && p.id === state.hostId} isMe={!!p && p.id === me} presence={!!p && room.presence.has(p.id)} onTap={() => tapSeat(c)} />;
           })}
-          <div style={{ gridArea: "center" }} className="flex flex-col items-center justify-center rounded-2xl bg-black/25 text-center">
-            <div className="text-2xl font-extrabold" data-testid="player-count">
+          <div style={{ gridArea: "center" }} className="flex min-h-0 flex-col items-center justify-center rounded-2xl bg-black/25 text-center">
+            <div className="px-1 text-base leading-tight font-extrabold" data-testid="player-count">
               {t("playersCount", { n: players.length, max: state.settings.maxPlayers })}
             </div>
             {state.spectatorCount > 0 && <div className="text-[10px] text-white/60">{t("spectatorsWatching", { n: state.spectatorCount })}</div>}
           </div>
         </div>
       </div>
+      </div>
 
-      {summary}
+      <div className="shrink-0">{summary}</div>
       {isHost && (
-        <div className="flex justify-center gap-2">
+        <div className="flex shrink-0 justify-center gap-2">
           <GameButton size="sm" variant="ghost" onClick={() => setEditing({ ...state.settings } as Record<string, unknown>)} data-testid="edit-settings">
             ⚙ {t("editSettings")}
           </GameButton>
@@ -182,9 +203,10 @@ export function LobbyView({
         </div>
       )}
 
-      <div className="mt-auto grid gap-3 pb-2">
-        {mine && (
+      <div className="grid shrink-0 gap-2 pb-2">
+        {showReady && (
           <GameButton
+            size={isHost ? "md" : "lg"}
             variant={mine.isReady ? "dark" : "green"}
             onClick={() => send({ type: "SET_READY", ready: !mine.isReady })}
             data-testid="ready-button"
@@ -209,23 +231,8 @@ export function LobbyView({
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t("editSettings")}>
         {editing && (
-          <div className="grid min-w-0 grid-cols-1 gap-4 pb-6">
-            {renderEditor(editing, setEditing)}
-            <div className="grid grid-cols-2 gap-2">
-              <GameButton size="md" variant="dark" onClick={() => setEditing(null)}>
-                {t("cancel")}
-              </GameButton>
-              <GameButton
-                size="md"
-                variant="green"
-                onClick={async () => {
-                  const res = await send({ type: "UPDATE_SETTINGS", settings: editing } as AnyCommand);
-                  if (res.ok) setEditing(null);
-                }}
-              >
-                {t("save")}
-              </GameButton>
-            </div>
+          <div className="flex h-[min(600px,82dvh)] min-h-0 flex-col pb-3">
+            <Wizard steps={editorSteps(editing, setEditing)} finishLabel={t("save")} onFinish={save} busy={saving} testId="editor" />
           </div>
         )}
       </Sheet>

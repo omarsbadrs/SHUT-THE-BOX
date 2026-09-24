@@ -19,7 +19,8 @@ import {
   type GameId,
 } from "./games";
 import { getStore } from "./store";
-import type { MatchSummary } from "./store/types";
+import type { HangmanServerState } from "@/games/hangman";
+import type { HangmanMatchSummary, MatchSummary } from "./store/types";
 
 /**
  * Server-authoritative command pipeline (any game):
@@ -46,19 +47,40 @@ function sideEffects(state: AnyServerState, events: AnyEvent[]) {
   const store = getStore();
   const analytics = analyticsFor(state, events);
   const shutCompleted = gameOf(state) === "shut10" && events.some((e) => e.type === "MATCH_COMPLETED");
+  const hmCompleted = gameOf(state) === "hangman" && events.some((e) => e.type === "HM_MATCH_ENDED");
   after(async () => {
     try {
       if (analytics.length) await store.recordAnalytics(analytics);
       if (shutCompleted && (state as ShutServerState).match?.result) await store.archiveMatch(summarize(state as ShutServerState));
+      if (hmCompleted && (state as HangmanServerState).match?.result) await store.archiveMatch(summarizeHangman(state as HangmanServerState));
     } catch (err) {
       console.error("side effects failed", err);
     }
   });
 }
 
+function summarizeHangman(state: HangmanServerState): HangmanMatchSummary {
+  const match = state.match!;
+  return {
+    game: "hangman",
+    matchId: match.id,
+    roomId: state.roomId,
+    code: state.code,
+    number: match.number,
+    settings: match.settings,
+    players: state.players.filter((p) => match.playerIds.includes(p.id)).map(({ id, nickname, avatar, color, isBot }) => ({ id, nickname, avatar, color, isBot })),
+    scores: match.scores,
+    history: match.history,
+    result: match.result!,
+    startedAt: match.startedAt,
+    endedAt: match.result!.endedAt,
+  };
+}
+
 function summarize(state: ShutServerState): MatchSummary {
   const match = state.match!;
   return {
+    game: "shut10",
     matchId: match.id,
     roomId: state.roomId,
     code: state.code,

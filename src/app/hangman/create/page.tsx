@@ -8,7 +8,8 @@ import { HangmanSettingsForm } from "@/components/hangman/settings";
 import { PageShell } from "@/components/page-shell";
 import { ProfileFields } from "@/components/profile-fields";
 import { useErrorText, useToast } from "@/components/ui/hooks";
-import { GameButton, Toast } from "@/components/ui/primitives";
+import { Toast } from "@/components/ui/primitives";
+import { Wizard } from "@/components/ui/wizard";
 import { apiFetch } from "@/lib/client/api";
 import { unlockAudio } from "@/lib/client/feedback";
 import { setPrefs, usePrefs } from "@/lib/client/prefs";
@@ -35,10 +36,7 @@ export default function HangmanCreatePage() {
     if (!nickname.trim()) return toast.show(t("err_INVALID_NICKNAME"));
     setBusy(true);
     setPrefs({ nickname: nickname.trim(), avatar, color });
-    const res = await apiFetch<{ code: string }>("/api/rooms", {
-      method: "POST",
-      body: JSON.stringify({ game: "hangman", nickname, avatar, color, settings }),
-    });
+    const res = await apiFetch<{ code: string }>("/api/rooms", { method: "POST", body: JSON.stringify({ game: "hangman", nickname, avatar, color, settings }) });
     if (!res.ok) {
       setBusy(false);
       return toast.show(errText(res.error));
@@ -49,20 +47,22 @@ export default function HangmanCreatePage() {
   return (
     <PageShell title={`${t("gameHangman")} · ${t("playWithFriends")}`}>
       <Toast message={toast.message} />
-      <div className="grid min-w-0 grid-cols-1 gap-6 pb-32">
-        <ProfileFields nickname={nickname} setNickname={setNickname} avatar={avatar} setAvatar={setAvatar} color={color} setColor={setColor} allowAny={false} />
-        <div className="glass rounded-3xl p-4">
-          <div className="mb-3 text-sm font-extrabold tracking-wider text-white/70 uppercase">{t("gameOptions")}</div>
-          <HangmanSettingsForm value={settings} onChange={setSettings} />
-        </div>
-      </div>
-      <div className="fixed inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#07120d] via-[#07120d]/95 to-transparent px-4 pt-6 safe-bottom">
-        <div className="mx-auto max-w-[520px]">
-          <GameButton className="w-full" onClick={create} disabled={busy} data-testid="create-game">
-            {busy ? t("creating") : t("createGame")}
-          </GameButton>
-        </div>
-      </div>
+      <Wizard
+        busy={busy}
+        testId="create"
+        finishLabel={busy ? t("creating") : t("createGame")}
+        onFinish={create}
+        steps={[
+          {
+            key: "you",
+            title: t("step_you"),
+            valid: !!nickname.trim(),
+            content: <ProfileFields nickname={nickname} setNickname={setNickname} avatar={avatar} setAvatar={setAvatar} color={color} setColor={setColor} allowAny={false} />,
+          },
+          { key: "game", title: t("step_game"), content: <HangmanSettingsForm section="game" value={settings} onChange={setSettings} /> },
+          { key: "rules", title: t("step_rules"), content: <HangmanSettingsForm section="rules" value={settings} onChange={setSettings} /> },
+        ]}
+      />
     </PageShell>
   );
 }

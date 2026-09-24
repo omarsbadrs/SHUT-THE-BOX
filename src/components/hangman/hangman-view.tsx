@@ -23,6 +23,7 @@ import { PLAYER_STYLE } from "../game/theme";
 import { useErrorText, useServerNow, useToast } from "../ui/hooks";
 import { GameButton, Sheet, TextInput, Toast } from "../ui/primitives";
 import { Gallows, type GallowsState } from "./gallows";
+import { HangmanMatchResultsView } from "./results";
 import { Keyboard, WordSlots } from "./word-board";
 
 const RESULT_DELAY_MS = 2200; // let the hang / rescue animation play before the results sheet
@@ -168,98 +169,6 @@ function RoundPanel({
         </div>
       </motion.div>
     </motion.div>
-  );
-}
-
-function MatchResults({ state, me, onRematch, onLobby, onExit }: { state: HangmanRoomState; me: string | null; onRematch: () => void; onLobby: () => void; onExit: () => void }) {
-  const { t, n } = useI18n();
-  const router = useRouter();
-  const match = state.match!;
-  const result = match.result!;
-  const isHost = state.hostId === me;
-  const byId = new Map(state.players.map((p) => [p.id, p]));
-  const winners = result.winnerIds.map((id) => byId.get(id)).filter(Boolean);
-  const rows: Array<[string, (s: HmScore) => number]> = [
-    [t("hm_stat_words"), (s) => s.wordsSolved],
-    [t("hm_stat_letters"), (s) => s.lettersFound],
-    [t("hm_stat_wrong"), (s) => s.wrongGuesses],
-    ...(match.settings.gameMode === "hangman_master" ? ([[t("hm_stat_hangmen"), (s: HmScore) => s.hangmen]] as Array<[string, (s: HmScore) => number]>) : []),
-  ];
-  return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[560px] flex-col px-4 safe-top safe-bottom" data-testid="hm-match-results">
-      <div className="flex flex-col items-center pt-6 pb-4 text-center">
-        <div className="chalkboard relative flex h-36 w-44 items-center justify-center rounded-2xl p-2">
-          <Gallows wrong={6} lives={6} state="saved" />
-        </div>
-        <div className="mt-3 text-sm font-extrabold tracking-[0.35em] text-white/60">{winners.length > 1 ? t("winners") : t("winner")}</div>
-        <div className="text-5xl font-extrabold" style={{ color: winners[0] ? PLAYER_STYLE[winners[0]!.color].light : "#ffcf4a" }} data-testid="match-winner">
-          {winners.map((w) => w!.nickname).join(" & ") || "—"}
-        </div>
-        {result.reason !== "completed" && <div className="mt-1 text-xs font-bold text-white/50">{result.reason === "host_ended" ? t("matchEndedByHost") : t("notEnoughPlayersLeft")}</div>}
-      </div>
-      <ol className="space-y-2">
-        {result.standings.map((s) => {
-          const p = byId.get(s.playerId);
-          if (!p) return null;
-          return (
-            <li key={s.playerId} className="flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2.5">
-              <span className="w-6 text-center text-xl font-extrabold text-white/60">{n(s.rank)}</span>
-              <Avatar player={p} size={34} />
-              <span className="min-w-0 flex-1 truncate text-lg font-extrabold">{p.nickname}</span>
-              <span className="text-sm font-bold text-white/70">{t("pts", { n: s.points })}</span>
-            </li>
-          );
-        })}
-      </ol>
-      <div className="no-scrollbar mt-5 overflow-x-auto rounded-2xl bg-black/25">
-        <table className="w-full min-w-[320px] text-sm">
-          <thead>
-            <tr className="text-white/60">
-              <th />
-              {result.standings.map((s) => (
-                <th key={s.playerId} className="px-2 py-2 text-center font-extrabold" style={{ color: byId.get(s.playerId) ? PLAYER_STYLE[byId.get(s.playerId)!.color].light : undefined }}>
-                  {byId.get(s.playerId)?.nickname}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(([label, fn]) => (
-              <tr key={label} className="border-t border-white/5">
-                <td className="px-3 py-2 text-white/70">{label}</td>
-                {result.standings.map((s) => (
-                  <td key={s.playerId} className="px-2 py-2 text-center font-extrabold tabular-nums">
-                    {match.scores[s.playerId] ? n(fn(match.scores[s.playerId])) : "—"}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-auto grid gap-3 pt-6">
-        {isHost ? (
-          <GameButton onClick={onRematch} data-testid="rematch">
-            {t("rematch")}
-          </GameButton>
-        ) : (
-          <div className="text-center text-sm font-bold text-white/60">{t("waitingRematch")}</div>
-        )}
-        <div className="grid grid-cols-2 gap-3">
-          <GameButton variant="dark" size="md" onClick={() => router.push("/hangman/create")}>
-            {t("newRoom")}
-          </GameButton>
-          <GameButton variant="dark" size="md" onClick={onExit}>
-            {t("exit")}
-          </GameButton>
-        </div>
-        {isHost && (
-          <button type="button" onClick={onLobby} className="pb-2 text-sm font-bold text-white/60 underline">
-            {t("backToLobby")}
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -430,7 +339,21 @@ export function HangmanView({ room }: { room: RoomHandle }) {
   const resultAge = lastResult ? now - lastResult.endedAt : 0;
   const showRoundPanel = !!lastResult && resultAge > RESULT_DELAY_MS && (phase === "HM_ROUND_RESULTS" || (phase === "HM_MATCH_RESULTS" && finalAck !== match.id && resultAge < FINAL_ROUND_MS + RESULT_DELAY_MS));
   if (phase === "HM_MATCH_RESULTS" && match.result && !showRoundPanel && (resultAge > RESULT_DELAY_MS || !lastResult || finalAck === match.id)) {
-    return <MatchResults state={state} me={me} onRematch={() => send({ type: "REMATCH" })} onLobby={() => send({ type: "BACK_TO_LOBBY" })} onExit={leave} />;
+    return (
+      <HangmanMatchResultsView
+        players={state.players.filter((p) => match.playerIds.includes(p.id))}
+        scores={match.scores}
+        result={match.result}
+        history={match.history}
+        settings={settings}
+        isHost={isHost}
+        onRematch={() => send({ type: "REMATCH" })}
+        onLobby={() => send({ type: "BACK_TO_LOBBY" })}
+        onNewRoom={() => router.push("/hangman/create")}
+        onExit={leave}
+        shareUrl={typeof window !== "undefined" ? `${window.location.origin}/results/${match.id}` : null}
+      />
+    );
   }
 
   // ── status line ──

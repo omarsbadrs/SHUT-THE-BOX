@@ -66,7 +66,7 @@ export function Keyboard({
   onKey: (letter: string) => void;
 }) {
   return (
-    <div className="grid gap-1.5" dir="ltr" data-testid="keyboard">
+    <div className="grid gap-[clamp(3px,0.9dvh,6px)]" dir="ltr" data-testid="keyboard">
       {KEYBOARDS[lang].map((row, ri) => (
         <div key={ri} className="flex justify-center gap-1">
           {row.map((l) => {
@@ -82,7 +82,7 @@ export function Keyboard({
                 disabled={disabled || used}
                 onClick={() => onKey(l)}
                 whileTap={{ scale: 0.88 }}
-                className={`chalk relative flex h-11 max-w-[42px] min-w-0 flex-1 items-center justify-center rounded-lg border-2 text-xl leading-none transition-colors ${
+                className={`chalk relative flex h-[clamp(34px,6.4dvh,44px)] max-w-[42px] min-w-0 flex-1 items-center justify-center rounded-lg border-2 text-xl leading-none transition-colors ${
                   isCorrect
                     ? "border-emerald-300/50 bg-emerald-400/15 text-emerald-200"
                     : isWrong

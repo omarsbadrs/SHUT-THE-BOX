@@ -27,7 +27,7 @@ async function main() {
   await a.goto("/create");
   await a.getByTestId("nickname").fill("Omar");
   await shot(a, "02-create");
-  await a.getByTestId("create-game").click();
+  await a.getByTestId("create-finish-now").click();
   await a.getByTestId("lobby").waitFor();
   const code = (await a.getByTestId("lobby-code").innerText()).trim();
   await b.goto(`/join/${code}`);

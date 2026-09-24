@@ -21,7 +21,7 @@ test("two phones play live turns on the deployment", async ({ browser }) => {
 
   await a.goto("/create");
   await a.getByTestId("nickname").fill("LiveHost");
-  await a.getByTestId("create-game").click();
+  await a.getByTestId("create-finish-now").click();
   const code = (await a.getByTestId("lobby-code").innerText()).trim();
 
   await b.goto(`/join/${code}`);

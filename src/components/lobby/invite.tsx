@@ -3,7 +3,7 @@
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
-import { GameButton, Sheet } from "../ui/primitives";
+import { Sheet } from "../ui/primitives";
 
 export function joinUrl(code: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
@@ -54,29 +54,38 @@ export function InvitePanel({ code }: { code: string }) {
     }
   };
 
+  const iconBtn = "glass flex h-11 flex-col items-center justify-center rounded-xl px-1 text-[8px] leading-none font-extrabold tracking-wide text-white/80 active:scale-95";
   return (
-    <div className="glass rounded-3xl p-4 text-center" data-testid="invite">
-      <div className="text-xs font-bold tracking-[0.3em] text-white/60">{t("roomCode")}</div>
-      <button type="button" onClick={() => copy(code, "code")} className="text-5xl font-extrabold tracking-[0.18em] text-[#ffcf4a]" data-testid="lobby-code" dir="ltr">
-        {code}
-      </button>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <GameButton size="sm" variant="dark" onClick={() => copy(code, "code")}>
-          {copied === "code" ? t("copied") : t("copyCode")}
-        </GameButton>
-        <GameButton size="sm" variant="dark" onClick={() => copy(url, "link")}>
-          {copied === "link" ? t("copied") : t("copyLink")}
-        </GameButton>
-        <GameButton size="sm" variant="blue" onClick={share}>
-          📤 {t("share")}
-        </GameButton>
-        <GameButton size="sm" variant="blue" onClick={() => setQr(true)} data-testid="qr-button">
-          ▦ {t("qrCode")}
-        </GameButton>
+    <div className="glass shrink-0 rounded-2xl p-2.5" data-testid="invite">
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => copy(code, "code")} className="min-w-0 flex-1 text-start" data-testid="lobby-code-button">
+          <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">{copied ? t("copied") : t("roomCode")}</div>
+          <div className="text-[clamp(1.3rem,6.2vw,2.2rem)] leading-none font-extrabold tracking-[0.1em] text-[#ffcf4a]" data-testid="lobby-code" dir="ltr">
+            {code}
+          </div>
+        </button>
+        <div className="grid shrink-0 grid-cols-4 gap-1.5">
+          <button type="button" className={`${iconBtn} w-10`} onClick={() => copy(code, "code")} aria-label={t("copyCode")}>
+            <span className="text-base">⧉</span>
+            {copied === "code" ? "✓" : "CODE"}
+          </button>
+          <button type="button" className={`${iconBtn} w-10`} onClick={() => copy(url, "link")} aria-label={t("copyLink")}>
+            <span className="text-base">🔗</span>
+            {copied === "link" ? "✓" : "LINK"}
+          </button>
+          <button type="button" className={`${iconBtn} w-10`} onClick={share} aria-label={t("share")}>
+            <span className="text-base">📤</span>
+            {t("share")}
+          </button>
+          <button type="button" className={`${iconBtn} w-10`} onClick={() => setQr(true)} aria-label={t("qrCode")} data-testid="qr-button">
+            <span className="text-base">▦</span>
+            QR
+          </button>
+        </div>
       </div>
       <Sheet open={qr} onClose={() => setQr(false)} title={t("inviteFriends")}>
         <div className="flex flex-col items-center gap-3 pb-6">
-          <QrImage text={url} />
+          <QrImage text={url} size={Math.min(260, typeof window !== "undefined" ? Math.floor(window.innerHeight * 0.45) : 260)} />
           <div className="text-4xl font-extrabold tracking-[0.18em] text-[#ffcf4a]" dir="ltr">
             {code}
           </div>

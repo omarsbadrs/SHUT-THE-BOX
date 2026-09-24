@@ -1,9 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useState } from "react";
 import type { GameSettings, MatchPlayerStats, MatchResult, PlayerColor, RoundResult } from "@/game-engine";
 import { useI18n } from "@/lib/i18n/context";
 import { GameButton } from "../ui/primitives";
+import { ResultsFrame, StatsGrid, WinnerHero } from "../ui/results-frame";
 import { Avatar } from "./player-badge";
 import { ColorIcon, PLAYER_STYLE } from "./theme";
 
@@ -154,16 +156,6 @@ export function MatchResultsView({
   const winners = result.winnerIds.map((id) => byId.get(id)).filter(Boolean) as ResultPlayer[];
   const main = winners[0];
 
-  const share = async () => {
-    const text = t("shareResultText", { name: winners.map((w) => w.nickname).join(" & ") || "—" });
-    try {
-      if (navigator.share) await navigator.share({ title: "SHUT10", text, url: shareUrl ?? undefined });
-      else await navigator.clipboard.writeText(`${text} ${shareUrl ?? ""}`.trim());
-    } catch {
-      // cancelled
-    }
-  };
-
   const statRows: Array<[string, (s: MatchPlayerStats) => string]> = [
     [t("stat_roundWins"), (s) => n(s.roundWins)],
     [t("stat_perfect"), (s) => n(s.perfectRounds)],
@@ -175,69 +167,65 @@ export function MatchResultsView({
   ];
   const ordered = result.standings.map((s) => ({ standing: s, player: byId.get(s.playerId), stats: stats[s.playerId] })).filter((x) => x.player && x.stats);
 
-  return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[560px] flex-col px-4 safe-top safe-bottom" data-testid="match-results">
-      <div className="relative flex flex-col items-center pt-6 pb-4 text-center">
-        <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 12 }} className="text-7xl">
+  const hero = (
+    <WinnerHero
+      art={
+        <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 12 }} className="text-[clamp(2rem,8dvh,4.5rem)] leading-none">
           🏆
         </motion.div>
-        <div className="mt-2 text-sm font-extrabold tracking-[0.35em] text-white/60">{winners.length > 1 ? t("winners") : t("winner")}</div>
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="text-5xl font-extrabold"
-          style={{ color: main ? PLAYER_STYLE[main.color].light : "#ffcf4a" }}
-          data-testid="match-winner"
-        >
-          {winners.map((w) => w.nickname).join(" & ") || "—"}
-        </motion.div>
-        {result.reason !== "completed" && (
-          <div className="mt-1 text-xs font-bold text-white/50">{result.reason === "host_ended" ? t("matchEndedByHost") : t("notEnoughPlayersLeft")}</div>
-        )}
-      </div>
+      }
+      label={winners.length > 1 ? t("winners") : t("winner")}
+      name={winners.map((w) => w.nickname).join(" & ") || "—"}
+      color={main ? PLAYER_STYLE[main.color].light : "#ffcf4a"}
+      note={result.reason !== "completed" ? (result.reason === "host_ended" ? t("matchEndedByHost") : t("notEnoughPlayersLeft")) : undefined}
+    />
+  );
 
-      <div className="text-xs font-bold tracking-wider text-white/50 uppercase">{t("finalStandings")}</div>
-      <ol className="mt-2 space-y-2">
+  const standingsTab = (
+    <div className="flex h-full flex-col gap-1.5">
+      <div className="text-[11px] font-bold tracking-wider text-white/50 uppercase">
+        {t("finalStandings")} · {t(`scoring_${settings.scoringMode}`)}
+      </div>
+      <ol className="grid gap-1.5">
         {ordered.map(({ standing, player, stats: s }) => (
-          <li key={standing.playerId} className="flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2.5" data-testid={`standing-${player!.color}`}>
+          <li key={standing.playerId} className={`flex items-center gap-3 rounded-2xl px-3 py-[clamp(3px,1.1dvh,8px)] ${standing.rank === 1 ? "bg-[#ffcf4a]/12 ring-1 ring-[#ffcf4a]/50" : "bg-white/5"}`} data-testid={`standing-${player!.color}`}>
             <span className="w-6 text-center text-xl font-extrabold text-white/60">{n(standing.rank)}</span>
-            <Avatar player={player!} size={34} />
+            <Avatar player={player!} size={32} />
             <span className="min-w-0 flex-1 truncate text-lg font-extrabold">{player!.nickname}</span>
             <span className="text-sm font-bold text-white/70">{standingValue(s!, settings, t, n)}</span>
           </li>
         ))}
       </ol>
+    </div>
+  );
 
-      <div className="mt-5 text-xs font-bold tracking-wider text-white/50 uppercase">{t("stats")}</div>
-      <div className="no-scrollbar mt-2 overflow-x-auto rounded-2xl bg-black/25">
-        <table className="w-full min-w-[340px] text-sm">
-          <thead>
-            <tr className="text-white/60">
-              <th className="px-3 py-2 text-start font-bold" />
-              {ordered.map(({ player }) => (
-                <th key={player!.id} className="px-2 py-2 text-center font-extrabold" style={{ color: PLAYER_STYLE[player!.color].light }}>
-                  {player!.nickname}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {statRows.map(([label, fn]) => (
-              <tr key={label} className="border-t border-white/5">
-                <td className="px-3 py-2 text-white/70">{label}</td>
-                {ordered.map(({ player, stats: s }) => (
-                  <td key={player!.id} className="px-2 py-2 text-center font-extrabold tabular-nums">
-                    {fn(s!)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  const statsTab = (
+    <StatsGrid
+      columns={ordered.map(({ player }) => ({
+        id: player!.id,
+        head: (
+          <span className="flex min-w-0 flex-col items-center gap-0.5">
+            <Avatar player={player!} size={22} />
+            <span className="max-w-full truncate text-[10px] font-extrabold" style={{ color: PLAYER_STYLE[player!.color].light }}>
+              {player!.nickname}
+            </span>
+          </span>
+        ),
+      }))}
+      rows={statRows.map(([label, fn]) => ({ label, values: Object.fromEntries(ordered.map(({ player, stats: s }) => [player!.id, fn(s!)])) }))}
+    />
+  );
 
-      <div className="mt-auto grid gap-3 pt-6">
+  return (
+    <ResultsFrame
+      testId="match-results"
+      hero={hero}
+      tabs={[
+        { key: "standings", label: t("tab_standings"), content: standingsTab },
+        { key: "stats", label: t("tab_stats"), content: statsTab },
+      ]}
+      actions={
+        <>
         {isHost && onRematch ? (
           <>
             {setShuffle && (
@@ -246,32 +234,68 @@ export function MatchResultsView({
                 {t("shuffleColors")}
               </label>
             )}
-            <GameButton onClick={onRematch} data-testid="rematch">
+            <GameButton onClick={onRematch} className="[@media(max-height:640px)]:h-12" data-testid="rematch">
               {t("rematch")}
             </GameButton>
           </>
         ) : onRematch ? (
           <div className="text-center text-sm font-bold text-white/60">{t("waitingRematch")}</div>
         ) : null}
-        <div className="grid grid-cols-2 gap-3">
-          <GameButton variant="blue" size="md" onClick={share}>
-            {t("shareResult")}
-          </GameButton>
-          <GameButton variant="dark" size="md" onClick={onNewRoom}>
-            {t("newRoom")}
-          </GameButton>
-        </div>
-        <div className="flex justify-center gap-4 pb-2">
-          {isHost && onLobby && (
-            <button type="button" onClick={onLobby} className="text-sm font-bold text-white/60 underline">
-              {t("backToLobby")}
-            </button>
-          )}
-          <button type="button" onClick={onExit} className="text-sm font-bold text-white/60 underline">
-            {t("exit")}
-          </button>
-        </div>
+        <ResultActions shareText={t("shareResultText", { name: winners.map((w) => w.nickname).join(" & ") || "—" })} shareUrl={shareUrl} onNewRoom={onNewRoom} onExit={onExit} onLobby={isHost ? onLobby : undefined} />
+        </>
+      }
+    />
+  );
+}
+
+/** Share / new room / exit row used by every game's results screen. */
+export function ResultActions({
+  shareText,
+  shareUrl,
+  onNewRoom,
+  onExit,
+  onLobby,
+}: {
+  shareText: string;
+  shareUrl: string | null;
+  onNewRoom: () => void;
+  onExit: () => void;
+  onLobby?: () => void;
+}) {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: "Games Hub", text: shareText, url: shareUrl ?? undefined });
+      else {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl ?? ""}`.trim());
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }
+    } catch {
+      // cancelled
+    }
+  };
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <GameButton variant="blue" size="md" className="!px-2 text-sm whitespace-nowrap [@media(max-height:640px)]:h-11" onClick={share} data-testid="share-result">
+          📤 {copied ? t("copied") : t("shareResult")}
+        </GameButton>
+        <GameButton variant="dark" size="md" className="[@media(max-height:640px)]:h-11" onClick={onNewRoom}>
+          {t("newRoom")}
+        </GameButton>
       </div>
-    </div>
+      <div className="flex justify-center gap-4">
+        {onLobby && (
+          <button type="button" onClick={onLobby} className="text-sm font-bold text-white/60 underline">
+            {t("backToLobby")}
+          </button>
+        )}
+        <button type="button" onClick={onExit} className="text-sm font-bold text-white/60 underline">
+          {t("exit")}
+        </button>
+      </div>
+    </>
   );
 }

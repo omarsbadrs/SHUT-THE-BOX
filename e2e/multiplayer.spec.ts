@@ -50,7 +50,7 @@ test("four phones play a synchronized Face-Off round", async ({ browser }) => {
   await omar.page.getByTestId("home-create").click();
   await omar.page.getByTestId("nickname").fill("Omar");
   await omar.page.getByTestId("color-blue").click();
-  await omar.page.getByTestId("create-game").click();
+  await omar.page.getByTestId("create-finish-now").click();
   await expect(omar.page.getByTestId("lobby")).toBeVisible();
   const code = (await omar.page.getByTestId("lobby-code").innerText()).trim();
   expect(code).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{6}$/);
@@ -167,7 +167,7 @@ test("refresh restores the game exactly", async ({ browser }) => {
   const b = await newPhone(browser, "Guest", "green");
   await a.page.goto("/create");
   await a.page.getByTestId("nickname").fill("Host");
-  await a.page.getByTestId("create-game").click();
+  await a.page.getByTestId("create-finish-now").click();
   const code = (await a.page.getByTestId("lobby-code").innerText()).trim();
   await b.page.goto(`/join/${code}`);
   await b.page.getByTestId("nickname").fill("Guest");

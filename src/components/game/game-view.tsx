@@ -24,7 +24,7 @@ import { haptic, sfx, unlockAudio } from "@/lib/client/feedback";
 import { setPrefs, usePrefs } from "@/lib/client/prefs";
 import type { RoomHandle } from "@/lib/client/use-room";
 import { useI18n } from "@/lib/i18n/context";
-import { useErrorText, useServerNow, useToast } from "../ui/hooks";
+import { useErrorText, useServerNow, useShortScreen, useToast } from "../ui/hooks";
 import { GameButton, Toast } from "../ui/primitives";
 import { Board } from "./board";
 import { Die } from "./dice";
@@ -74,7 +74,8 @@ export function GameView({ room }: { room: RoomHandle }) {
   const myPlayer = getPlayer(state, me);
   const myRound = me ? round?.players[me] : undefined;
   const tableMode = room.spectator || !me || prefs.view === "table";
-  const diceSize = tableMode ? 42 : 50;
+  const short = useShortScreen();
+  const diceSize = tableMode ? (short ? 34 : 42) : short ? 44 : 50;
   const isHost = !!me && state.hostId === me;
   const turnBased = isTurnBased(settings.gameMode);
   const pending = myRound?.pending ?? null;
@@ -280,7 +281,7 @@ export function GameView({ room }: { room: RoomHandle }) {
       const checking = !!dice && dice.validCount === 0;
       status = (
         <div className="flex flex-col items-center gap-1.5" data-testid="dice-area">
-          <div className="text-[10px] font-extrabold tracking-[0.25em] text-white/60">
+          <div className={`text-[10px] font-extrabold tracking-[0.25em] text-white/60 ${short && tableMode ? "hidden" : ""}`}>
             {isMine || rollingLocal ? t("yourRoll") : t("rolled", { name: focusPlayer?.nickname.toUpperCase() ?? "" })}
           </div>
           <div className="flex items-center gap-3">
@@ -306,9 +307,12 @@ export function GameView({ room }: { room: RoomHandle }) {
                 <span className="animate-pulse text-sm font-extrabold tracking-wider text-white/80">{t("checkingMoves")}</span>
               ) : isMine ? (
                 <>
-                  <span className="text-sm font-extrabold tracking-wide" data-testid="choose-prompt">
-                    {t("chooseTiles", { total: dice.total })}
-                  </span>
+                  {/* On short phones the table tray is tiny; the readout under the board already says "Selected 0 / 8". */}
+                  {!(short && tableMode) && (
+                    <span className="text-sm font-extrabold tracking-wide" data-testid="choose-prompt">
+                      {t("chooseTiles", { total: dice.total })}
+                    </span>
+                  )}
                   <Countdown deadline={focus?.deadlineAt ?? null} now={now} testId="move-timer" />
                 </>
               ) : (
@@ -380,7 +384,7 @@ export function GameView({ room }: { room: RoomHandle }) {
 
   return (
     <div
-      className={`mx-auto flex w-full max-w-[520px] flex-col px-3 safe-top safe-bottom ${tableMode ? "h-dvh overflow-hidden" : "min-h-dvh"}`}
+      className={`mx-auto flex w-full max-w-[520px] flex-col px-3 safe-top safe-bottom h-dvh overflow-hidden`}
       data-testid="game-view"
       data-phase={phase}
       data-view={tableMode ? "table" : "players"}
@@ -446,7 +450,7 @@ export function GameView({ room }: { room: RoomHandle }) {
       {myPlayer && myRound && !room.spectator && (
         <div
           className="mx-auto mb-2 w-full shrink-0"
-          style={{ maxWidth: tableMode ? "min(100%, calc(28dvh * 2.1))" : `min(100%, calc((100dvh - ${boardReserve}px) * 1.8))` }}
+          style={{ maxWidth: tableMode ? `min(100%, calc(${short ? 25 : 28}dvh * 2.1))` : `min(100%, calc((100dvh - ${boardReserve}px) * 1.8))` }}
         >
           <Board
             color={myPlayer.color}

@@ -1,12 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * Layout regression: no screen may scroll sideways on a phone, and on desktop
- * the game column stays narrow (mobile layout, centered).
+ * Layout regression. The app never scrolls: on every phone size, every
+ * screen must fit — nothing past the screen edge (either axis), nothing cut
+ * off by a clipping container, and no internal scroll areas. On desktop the
+ * game column stays narrow (mobile layout, centered).
  */
 
 const PHONES = [
-  { name: "small-android", width: 360, height: 740 },
+  { name: "iphone-se-safari", width: 375, height: 548 },
+  { name: "small-android", width: 360, height: 640 },
   { name: "iphone", width: 390, height: 664 },
   { name: "pixel", width: 412, height: 839 },
 ];
@@ -18,97 +21,221 @@ async function horizontalOverflow(page: Page) {
     for (const el of Array.from(document.querySelectorAll<HTMLElement>("body *"))) {
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.right <= vw + 1) continue;
-      // Content inside an intentional horizontal scroller is fine.
+      // Content inside an intentional clipper is fine.
       let p = el.parentElement;
-      let scrolled = false;
+      let clipped = false;
       while (p) {
         const ox = getComputedStyle(p).overflowX;
         if (ox === "auto" || ox === "scroll" || ox === "hidden" || ox === "clip") {
-          scrolled = true;
+          clipped = true;
           break;
         }
         p = p.parentElement;
       }
-      if (!scrolled && getComputedStyle(el).position !== "fixed") offenders.push(`${el.tagName.toLowerCase()}.${el.className.toString().slice(0, 60)} → ${Math.round(r.right)}px`);
+      if (!clipped && getComputedStyle(el).position !== "fixed") offenders.push(`${el.tagName.toLowerCase()}.${el.className.toString().slice(0, 60)} → ${Math.round(r.right)}px`);
     }
     return { scrollWidth: document.documentElement.scrollWidth, vw, offenders: offenders.slice(0, 5) };
   });
 }
 
-async function setupRoom(page: Page) {
-  await page.goto("/");
-  return page.evaluate(async () => {
-    const post = (url: string, body: unknown) =>
-      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
-    const room = await post("/api/rooms", { nickname: "Layout", avatar: "🦊", color: "blue" });
-    for (let i = 0; i < 3; i++) await post(`/api/rooms/${room.code}/command`, { command: { type: "ADD_BOT", level: "easy" }, commandId: crypto.randomUUID() });
-    return room.code as string;
+/** Visible controls/text that fall below the screen, are cut off by a clipping parent, or sit in a scroll area. */
+async function verticalProblems(page: Page) {
+  return page.evaluate(() => {
+    const vh = window.innerHeight;
+    const out: string[] = [];
+    const label = (el: Element) => `${el.tagName.toLowerCase()}${el.getAttribute("data-testid") ? `[${el.getAttribute("data-testid")}]` : ""}.${el.className.toString().slice(0, 40)} "${(el.textContent ?? "").trim().slice(0, 24)}"`;
+    const hidden = (el: Element) => {
+      for (let p: Element | null = el; p; p = p.parentElement) {
+        const cs = getComputedStyle(p);
+        if (cs.visibility === "hidden" || cs.display === "none" || Number(cs.opacity) === 0 || p.getAttribute("aria-hidden") === "true") return true;
+      }
+      return false;
+    };
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("button, a, input, [data-testid], h1, h2, li, p"))) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0 || hidden(el)) continue;
+      if (r.bottom > vh + 2 || r.top < -2) {
+        out.push(`off-screen ${label(el)} bottom=${Math.round(r.bottom)} vh=${vh}`);
+        continue;
+      }
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        const oy = getComputedStyle(p).overflowY;
+        if (oy === "visible") continue;
+        const pr = p.getBoundingClientRect();
+        if (r.bottom > pr.bottom + 2 && r.top < pr.bottom) {
+          out.push(`clipped ${label(el)} by ${label(p)} (${Math.round(r.bottom)} > ${Math.round(pr.bottom)})`);
+          break;
+        }
+      }
+    }
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("body *"))) {
+      const oy = getComputedStyle(el).overflowY;
+      if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 2) out.push(`scroll area ${label(el)}`);
+    }
+    // Lobby seats and the player count must not sit on top of each other.
+    const boxes = Array.from(document.querySelectorAll<HTMLElement>("[data-testid='lobby'] [data-testid^='seat-'], [data-testid='player-count']")).map((el) => ({ el, r: el.getBoundingClientRect() }));
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i].r;
+        const b = boxes[j].r;
+        const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (w > 2 && h > 2) out.push(`overlap ${label(boxes[i].el)} × ${label(boxes[j].el)}`);
+      }
+    return [...new Set(out)].slice(0, 6);
   });
 }
 
+type Api = (path: string, body?: unknown) => Promise<Record<string, unknown> & { ok?: boolean }>;
+const api = (page: Page): Api => (path, body) =>
+  page.evaluate(
+    async ([p, b]) =>
+      (await fetch(p as string, b ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) } : undefined)).json(),
+    [path, body] as const,
+  );
+const cmd = (page: Page, code: string, command: Record<string, unknown>) => api(page)(`/api/rooms/${code}/command`, { command, commandId: crypto.randomUUID() });
+
+async function setupRooms(page: Page) {
+  await page.goto("/");
+  const call = api(page);
+  const shut = (await call("/api/rooms", { nickname: "Layout", avatar: "🦊", color: "blue" })).code as string;
+  for (let i = 0; i < 3; i++) await cmd(page, shut, { type: "ADD_BOT", level: "easy" });
+  const hm = (await call("/api/rooms", { game: "hangman", nickname: "Layout", avatar: "🦊", color: "blue", settings: { gameMode: "hangman_race", language: "ar", rounds: 3, maxPlayers: 4 } })).code as string;
+  for (let i = 0; i < 3; i++) await cmd(page, hm, { type: "ADD_BOT", level: "easy" });
+  await cmd(page, hm, { type: "DEV_HM_FORCE_WORD", words: ["كرة القدم"] });
+  const open = (await call("/api/rooms", { nickname: "Host With A Long Name", avatar: "🐯", color: "green" })).code as string;
+  await cmd(page, open, { type: "ADD_BOT", level: "easy" });
+  return { shut, hm, open };
+}
+
 for (const vp of PHONES) {
-  test(`no sideways scrolling on ${vp.name} (${vp.width}px)`, async ({ browser }) => {
+  test(`every screen fits ${vp.name} (${vp.width}x${vp.height}) with no scrolling`, async ({ browser }) => {
+    test.setTimeout(240_000);
     const context = await browser.newContext({ ...test.info().project.use, viewport: { width: vp.width, height: vp.height } });
     const page = await context.newPage();
-    const code = await setupRoom(page);
+    page.setDefaultTimeout(20_000);
+    const guestContext = await browser.newContext({ ...test.info().project.use, viewport: { width: vp.width, height: vp.height } });
+    const guest = await guestContext.newPage();
+    const rooms = await setupRooms(page);
 
-    const screens: Array<[string, () => Promise<void>]> = [
-      ["home", async () => void (await page.goto("/"))],
-      ["create", async () => void (await page.goto("/create"))],
-      [
-        "create+advanced",
-        async () => {
-          await page.goto("/create");
-          await page.getByText(/More options|خيارات أكثر/).click();
-          await page.getByTestId("format").getByRole("button", { name: "Custom", exact: true }).click();
-        },
-      ],
-      ["join", async () => void (await page.goto("/join"))],
-      ["practice", async () => void (await page.goto("/practice"))],
-      ["profile", async () => void (await page.goto("/profile"))],
-      ["lobby", async () => void (await page.goto(`/room/${code}`))],
-      [
-        "game",
-        async () => {
-          await page.goto(`/room/${code}`);
-          await page.getByTestId("start-game").click();
-          await expect(page.getByTestId("game-view")).toHaveAttribute("data-phase", "PLAYER_TURN", { timeout: 20_000 });
-          // Tallest state: my turn, dice rolled, choosing tiles.
-          await page.evaluate(async (c) => {
-            const post = (body: unknown) =>
-              fetch(`/api/rooms/${c}/command`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command: body, commandId: crypto.randomUUID() }) });
-            const me = (await (await fetch(`/api/rooms/${c}/state`)).json()).me;
-            await post({ type: "DEV_SET_TURN", playerId: me });
-            await post({ type: "DEV_FORCE_DICE", dice: [[3, 5]] });
-          }, code);
-          await page.getByTestId("roll-button").click();
-          await expect(page.getByTestId("choose-prompt")).toBeVisible();
-        },
-      ],
-    ];
-    for (const [name, open] of screens) {
-      await open();
-      await page.waitForTimeout(400);
-      const r = await horizontalOverflow(page);
-      expect.soft(r.offenders, `${name} @${vp.width}px has elements past the screen edge`).toEqual([]);
-      expect.soft(r.scrollWidth, `${name} @${vp.width}px scrolls sideways`).toBeLessThanOrEqual(r.vw);
+    const check = async (name: string) => {
+      await page.waitForTimeout(450);
+      const h = await horizontalOverflow(page);
+      expect.soft(h.offenders, `${name} @${vp.width}x${vp.height} has elements past the screen edge`).toEqual([]);
+      expect.soft(h.scrollWidth, `${name} @${vp.width}x${vp.height} scrolls sideways`).toBeLessThanOrEqual(h.vw);
+      const v = await verticalProblems(page);
+      if (v.length || process.env.LAYOUT_SHOTS) await page.screenshot({ path: `test-results/layout-${vp.name}-${name.replace(/[^a-z0-9]+/gi, "_")}.png` });
+      expect.soft(v, `${name} @${vp.width}x${vp.height} does not fit vertically`).toEqual([]);
+    };
+    const wizard = async (name: string, prefix: string, steps: string[]) => {
+      for (let i = 0; i < steps.length; i++) {
+        if (i > 0) await page.getByTestId(`${prefix}-next`).click();
+        await expect(page.getByTestId(prefix)).toHaveAttribute("data-step", steps[i]);
+        await check(`${name}/${steps[i]}`);
+      }
+    };
+
+    await page.goto("/");
+    await check("home");
+    await page.goto("/create");
+    await page.getByTestId("nickname").fill("Layout");
+    await wizard("create", "create", ["you", "game", "rules", "more"]);
+    await page.goto("/hangman/create");
+    await page.getByTestId("nickname").fill("Layout");
+    await wizard("hangman-create", "create", ["you", "game", "rules"]);
+    await page.goto("/join");
+    await check("join");
+    await guest.goto(`/join/${rooms.open}`);
+    await expect(guest.getByTestId("join-button")).toBeVisible();
+    {
+      // the guest page is a different phone — check it directly
+      const v = await verticalProblems(guest);
+      expect.soft(v, `join preview @${vp.width}x${vp.height}`).toEqual([]);
     }
-    // The game screen must fit the phone with no vertical scrolling, in both views.
+    await page.goto("/practice");
+    await check("practice");
+    await page.getByTestId("solo-roll").click();
+    await page.waitForTimeout(900);
+    await check("practice rolled");
+    await page.goto("/hangman/practice");
+    await check("hangman practice setup");
+    await page.getByTestId("hm-solo-start").click();
+    await check("hangman practice game");
+    await page.goto("/profile");
+    for (const tab of ["you", "settings", "stats", "account"]) {
+      await page.getByTestId(`profile-tab-${tab}`).click();
+      await check(`profile/${tab}`);
+    }
+
+    // SHUT10 lobby + settings editor
+    await page.goto(`/room/${rooms.shut}`);
+    await expect(page.getByTestId("lobby")).toBeVisible();
+    await check("lobby");
+    await page.getByTestId("edit-settings").click();
+    await wizard("lobby editor", "editor", ["game", "rules", "more"]);
+    await page.keyboard.press("Escape");
+    await page.goto(`/room/${rooms.shut}`);
+
+    // SHUT10 game, tallest state: my turn, dice rolled, choosing tiles — both views
+    await page.getByTestId("start-game").click();
+    await expect(page.getByTestId("game-view")).toHaveAttribute("data-phase", "PLAYER_TURN", { timeout: 20_000 });
+    const me = (await api(page)(`/api/rooms/${rooms.shut}/state`)).me as string;
+    await cmd(page, rooms.shut, { type: "DEV_SET_TURN", playerId: me });
+    await cmd(page, rooms.shut, { type: "DEV_FORCE_DICE", dice: [[3, 5]] });
+    await page.getByTestId("roll-button").click();
+    await expect(page.getByTestId("close-tiles")).toBeVisible();
+    await page.waitForTimeout(900); // dice land + total appears
     for (const view of ["table", "players"]) {
       if ((await page.getByTestId("game-view").getAttribute("data-view")) !== view) await page.getByTestId("view-toggle").click();
       await expect(page.getByTestId("game-view")).toHaveAttribute("data-view", view);
-      await page.waitForTimeout(300);
-      const v = await page.evaluate(() => ({ sh: document.documentElement.scrollHeight, vh: window.innerHeight }));
-      expect.soft(v.sh, `game (${view} view) @${vp.width}x${vp.height} scrolls vertically`).toBeLessThanOrEqual(v.vh);
-      const close = await page.getByTestId("close-tiles").boundingBox();
-      expect.soft(close && close.y + close.height <= v.vh, `CLOSE TILES visible in ${view} view @${vp.width}x${vp.height}`).toBe(true);
+      await check(`game (${view} view)`);
+      await expect(page.getByTestId("close-tiles")).toBeInViewport();
     }
+
+    // SHUT10 match results + shareable page
+    await cmd(page, rooms.shut, { type: "END_MATCH" });
+    await expect(page.getByTestId("match-results")).toBeVisible();
+    for (const tab of ["standings", "stats"]) {
+      await page.getByTestId(`tab-${tab}`).click();
+      await check(`match results/${tab}`);
+    }
+    const shutMatch = ((await api(page)(`/api/rooms/${rooms.shut}/state`)).state as { match: { id: string } }).match.id;
+    await expect.poll(async () => !!(await api(page)(`/api/matches/${shutMatch}`)).summary).toBe(true);
+    await page.goto(`/results/${shutMatch}`);
+    await expect(page.getByTestId("match-results")).toBeVisible();
+    await check("results page (shut10)");
+
+    // Hangman (Arabic race — the widest keyboard)
+    await page.goto(`/room/${rooms.hm}`);
+    await expect(page.getByTestId("lobby")).toBeVisible();
+    await check("hangman lobby");
+    await page.getByTestId("edit-settings").click();
+    await wizard("hangman lobby editor", "editor", ["game", "rules"]);
+    await page.keyboard.press("Escape");
+    await page.goto(`/room/${rooms.hm}`);
+    await page.getByTestId("start-game").click();
+    await expect(page.getByTestId("keyboard")).toBeVisible({ timeout: 15_000 });
+    await check("hangman race (ar)");
+    await cmd(page, rooms.hm, { type: "END_MATCH" });
+    await expect(page.getByTestId("hm-match-results")).toBeVisible({ timeout: 10_000 });
+    for (const tab of ["standings", "stats"]) {
+      await page.getByTestId(`tab-${tab}`).click();
+      await check(`hangman results/${tab}`);
+    }
+    const hmMatch = ((await api(page)(`/api/rooms/${rooms.hm}/state`)).state as { match: { id: string } }).match.id;
+    await expect.poll(async () => ((await api(page)(`/api/matches/${hmMatch}`)).summary as { game?: string } | null)?.game).toBe("hangman");
+    await page.goto(`/results/${hmMatch}`);
+    await expect(page.getByTestId("hm-match-results")).toBeVisible();
+    await check("results page (hangman)");
+
     // Arabic (RTL) create page too.
     await context.addCookies([{ name: "s10_lang", value: "ar", url: test.info().project.use.baseURL as string }]);
     await page.goto("/create");
-    const ar = await horizontalOverflow(page);
-    expect.soft(ar.offenders, `create (ar) @${vp.width}px`).toEqual([]);
+    await check("create (ar)");
+    await page.goto("/");
+    await check("home (ar)");
     await context.close();
+    await guestContext.close();
   });
 }
 

@@ -75,14 +75,14 @@ export function Sheet({ open, onClose, children, title }: { open: boolean; onClo
           <button type="button" aria-label="Close" className="absolute inset-0 bg-black/60" onClick={onClose} />
           <motion.div
             role="dialog"
-            className="safe-bottom relative max-h-[88dvh] w-full max-w-[560px] overflow-y-auto rounded-t-[28px] border-t border-white/10 bg-[#10231a] px-4 pt-3 shadow-2xl"
+            className="safe-bottom relative flex max-h-[94dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-[28px] border-t border-white/10 bg-[#10231a] px-4 pt-2 shadow-2xl"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
           >
-            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/20" />
-            {title && <div className="mb-3 text-center text-lg font-extrabold tracking-wide">{title}</div>}
+            <div className="mx-auto mb-2 h-1.5 w-12 shrink-0 rounded-full bg-white/20" />
+            {title && <div className="mb-2 shrink-0 text-center text-lg font-extrabold tracking-wide">{title}</div>}
             {children}
           </motion.div>
         </motion.div>
@@ -99,7 +99,7 @@ export function Toggle({ checked, onChange, label, testId }: { checked: boolean;
       aria-checked={checked}
       data-testid={testId}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/5 px-4 py-3 text-start"
+      className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/5 px-4 py-2.5 text-start"
     >
       <span className="font-semibold">{label}</span>
       <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? "bg-emerald-500" : "bg-white/15"}`}>
@@ -124,14 +124,14 @@ export function Segmented<T extends string | number>({
   cols?: string;
 }) {
   return (
-    <div className={`${cols ? `grid ${cols}` : "flex flex-wrap"} gap-1.5 rounded-2xl bg-black/25 p-1.5`} data-testid={testId}>
+    <div className={`${cols ? `grid ${cols}` : "flex flex-wrap"} gap-1 rounded-2xl bg-black/25 p-1`} data-testid={testId}>
       {options.map((o) => (
         <button
           type="button"
           key={String(o.value)}
           onClick={() => onChange(o.value)}
           aria-pressed={o.value === value}
-          className={`min-w-0 rounded-xl px-2 py-2 text-sm leading-tight font-bold transition ${cols ? "" : "flex-auto"} ${
+          className={`min-w-0 rounded-xl px-1.5 py-1.5 text-[13px] leading-tight font-bold transition ${cols ? "" : "flex-auto"} ${
             o.value === value ? "bg-[#ffcf4a] text-[#2a1a00] shadow" : "text-white/75 hover:bg-white/5"
           }`}
         >
@@ -149,12 +149,12 @@ export function Segmented<T extends string | number>({
 export function Field({ label, children, hint }: { label: ReactNode; children: ReactNode; hint?: ReactNode }) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="block space-y-1.5">
-      <span id={id} className="block text-xs font-bold tracking-wider text-white/60 uppercase">
+    <div role="group" aria-labelledby={id} className="block space-y-1">
+      <span id={id} className="block text-[11px] font-bold tracking-wider text-white/60 uppercase">
         {label}
       </span>
       {children}
-      {hint && <span className="block text-xs text-white/50">{hint}</span>}
+      {hint && <span className="block text-[11px] leading-snug text-white/50">{hint}</span>}
     </div>
   );
 }
@@ -163,7 +163,7 @@ export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`h-14 w-full rounded-2xl border border-white/10 bg-black/30 px-4 text-lg font-bold text-white placeholder:text-white/30 focus:border-[#ffcf4a] focus:outline-none ${props.className ?? ""}`}
+      className={`h-12 w-full rounded-2xl border border-white/10 bg-black/30 px-4 text-lg font-bold text-white placeholder:text-white/30 focus:border-[#ffcf4a] focus:outline-none ${props.className ?? ""}`}
     />
   );
 }

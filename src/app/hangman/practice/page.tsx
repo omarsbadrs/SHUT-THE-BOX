@@ -142,16 +142,16 @@ export default function HangmanPracticePage() {
   return (
     <PageShell title={t("hm_practiceTitle")}>
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-2 grid grid-cols-4 gap-1.5 text-center" data-testid="hm-solo-stats">
+        <div className="mb-2 grid shrink-0 grid-cols-4 gap-1.5 text-center" data-testid="hm-solo-stats">
           {[
             [t("hm_wins"), n(stats.wins)],
             [t("hm_losses"), n(stats.losses)],
             [t("streak"), n(stats.streak)],
             ["🏅", n(stats.best)],
           ].map(([k, v]) => (
-            <div key={k} className="glass rounded-xl px-1 py-1">
-              <div className="text-[9px] font-bold tracking-wider text-white/50 uppercase">{k}</div>
-              <div className="text-lg font-extrabold">{v}</div>
+            <div key={k} className="glass flex items-baseline justify-center gap-1.5 rounded-xl px-1 py-1">
+              <div className="truncate text-[9px] font-bold tracking-wider text-white/50 uppercase">{k}</div>
+              <div className="text-base font-extrabold">{v}</div>
             </div>
           ))}
         </div>
@@ -167,7 +167,7 @@ export default function HangmanPracticePage() {
           </div>
         ) : (
           <>
-            <div className="wood min-h-[260px] flex-1 rounded-[22px] p-2">
+            <div className="wood min-h-[140px] flex-1 rounded-[22px] p-2">
               <div className="chalkboard flex h-full flex-col rounded-[16px] px-3 pt-2 pb-3">
                 <div className="flex items-center justify-between">
                   <span className="chalk text-base opacity-80">{t(`cat_${game.category}` as MessageKey)}</span>
@@ -189,10 +189,10 @@ export default function HangmanPracticePage() {
                 </div>
               </div>
             </div>
-            <div className="my-2 text-center text-sm font-extrabold" data-testid="hm-solo-status">
+            <div className="my-1.5 shrink-0 text-center text-sm font-extrabold" data-testid="hm-solo-status">
               {solved ? t("hm_youSolved") : hanged ? t("hm_youHanged") : t("hm_livesLeft", { n: Math.max(0, lives - wrongCount) })}
             </div>
-            <div className="grid gap-2 pb-2">
+            <div className="grid shrink-0 gap-2 pb-2">
               {over ? (
                 <GameButton onClick={start} data-testid="hm-solo-next">
                   ✎ {t("hm_newWord")}

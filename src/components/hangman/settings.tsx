@@ -5,31 +5,41 @@ import { useI18n } from "@/lib/i18n/context";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { Field, Segmented, Toggle } from "../ui/primitives";
 
-export function HangmanSettingsForm({ value, onChange }: { value: HangmanSettings; onChange: (s: HangmanSettings) => void }) {
+export type HangmanSection = "game" | "rules";
+
+/** One short section of the Hangman settings (fits a phone screen — no scrolling). */
+export function HangmanSettingsForm({ value, onChange, section }: { value: HangmanSettings; onChange: (s: HangmanSettings) => void; section: HangmanSection }) {
   const { t } = useI18n();
   const set = (patch: Partial<HangmanSettings>) => onChange(normalizeHangmanSettings({ ...value, ...patch }));
   const master = value.gameMode === "hangman_master";
   const cats: HmCategoryChoice[] = ["mixed", ...CATEGORIES];
+
+  if (section === "game")
+    return (
+      <div className="grid min-w-0 grid-cols-1 gap-3" data-testid="hm-settings-form">
+        <Field label={t("hm_mode")} hint={t(`modeDesc_${value.gameMode}` as MessageKey)}>
+          <Segmented
+            value={value.gameMode}
+            onChange={(m) => set({ gameMode: m, rounds: m === "hangman_master" ? 1 : 5 })}
+            options={(["hangman_master", "hangman_race"] as const).map((m) => ({ value: m, label: t(`mode_${m}`) }))}
+            cols="grid-cols-2"
+            testId="hm-mode"
+          />
+        </Field>
+        <Field label={t("hm_language")}>
+          <Segmented value={value.language} onChange={(v) => set({ language: v })} options={(["en", "ar"] as const).map((v) => ({ value: v, label: t(`lang_${v}`) }))} cols="grid-cols-2" testId="hm-language" />
+        </Field>
+        <Field label={t("hm_category")}>
+          <Segmented value={value.category} onChange={(v) => set({ category: v })} options={cats.map((c) => ({ value: c, label: t(`cat_${c}` as MessageKey) }))} cols="grid-cols-4" />
+        </Field>
+        <Field label={t("players")}>
+          <Segmented value={value.maxPlayers} onChange={(v) => set({ maxPlayers: v })} options={[2, 3, 4].map((v) => ({ value: v as 2 | 3 | 4, label: `${v}` }))} cols="grid-cols-3" />
+        </Field>
+      </div>
+    );
+
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="hm-settings-form">
-      <Field label={t("hm_mode")} hint={t(`modeDesc_${value.gameMode}` as MessageKey)}>
-        <Segmented
-          value={value.gameMode}
-          onChange={(m) => set({ gameMode: m, rounds: m === "hangman_master" ? 1 : 5 })}
-          options={(["hangman_master", "hangman_race"] as const).map((m) => ({ value: m, label: t(`mode_${m}`) }))}
-          cols="grid-cols-2"
-          testId="hm-mode"
-        />
-      </Field>
-      <Field label={t("hm_language")}>
-        <Segmented value={value.language} onChange={(v) => set({ language: v })} options={(["en", "ar"] as const).map((v) => ({ value: v, label: t(`lang_${v}`) }))} cols="grid-cols-2" testId="hm-language" />
-      </Field>
-      <Field label={t("hm_category")}>
-        <Segmented value={value.category} onChange={(v) => set({ category: v })} options={cats.map((c) => ({ value: c, label: t(`cat_${c}` as MessageKey) }))} cols="grid-cols-4" />
-      </Field>
-      <Field label={t("players")}>
-        <Segmented value={value.maxPlayers} onChange={(v) => set({ maxPlayers: v })} options={[2, 3, 4].map((v) => ({ value: v as 2 | 3 | 4, label: `${v}` }))} cols="grid-cols-3" />
-      </Field>
+    <div className="grid min-w-0 grid-cols-1 gap-3" data-testid="hm-settings-form">
       <Field label={master ? t("hm_roundsMaster") : t("hm_roundsRace")}>
         <Segmented
           value={value.rounds}

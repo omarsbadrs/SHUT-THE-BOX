@@ -1,23 +1,45 @@
 import type { GameEvent, MatchPlayerStats, MatchResult, RoomPlayer, RoundResult, GameSettings, ServerRoomState as ShutServerState } from "@/game-engine";
-import type { HangmanServerState, HmEvent } from "@/games/hangman";
+import type { HangmanServerState, HangmanSettings, HmEvent, HmMatchResult, HmRoundResult, HmScore } from "@/games/hangman";
 
 /** Any game's server state; stores only rely on roomId / code / version. */
 export type ServerRoomState = ShutServerState | HangmanServerState;
 export type StoredEvent = GameEvent | HmEvent;
 
+type SummaryPlayer = Pick<RoomPlayer, "id" | "nickname" | "avatar" | "color" | "isBot">;
+
+/** Immutable record of a finished SHUT10 match (shareable /results page). */
 export interface MatchSummary {
+  game?: "shut10";
   matchId: string;
   roomId: string;
   code: string;
   number: number;
   settings: GameSettings;
-  players: Array<Pick<RoomPlayer, "id" | "nickname" | "avatar" | "color" | "isBot">>;
+  players: SummaryPlayer[];
   stats: Record<string, MatchPlayerStats>;
   history: RoundResult[];
   result: MatchResult;
   startedAt: number;
   endedAt: number;
 }
+
+/** Immutable record of a finished Hangman match. */
+export interface HangmanMatchSummary {
+  game: "hangman";
+  matchId: string;
+  roomId: string;
+  code: string;
+  number: number;
+  settings: HangmanSettings;
+  players: SummaryPlayer[];
+  scores: Record<string, HmScore>;
+  history: HmRoundResult[];
+  result: HmMatchResult;
+  startedAt: number;
+  endedAt: number;
+}
+
+export type AnyMatchSummary = MatchSummary | HangmanMatchSummary;
 
 export interface AnalyticsRow {
   name: string;
@@ -67,8 +89,8 @@ export interface RoomStore {
   eventsSince(roomId: string, seq: number, limit: number): Promise<StoredEvent[]>;
   touchPresence(roomId: string, entries: Record<string, number>): Promise<void>;
   getPresence(roomId: string): Promise<Record<string, number>>;
-  archiveMatch(summary: MatchSummary): Promise<void>;
-  findMatch(matchId: string): Promise<{ code: string; summary: MatchSummary | null } | null>;
+  archiveMatch(summary: AnyMatchSummary): Promise<void>;
+  findMatch(matchId: string): Promise<{ code: string; summary: AnyMatchSummary | null } | null>;
   recordAnalytics(rows: AnalyticsRow[]): Promise<void>;
   recordError(source: string, message: string, context: Record<string, unknown>): Promise<void>;
   linkProfile(userId: string, guestId: string, nickname: string | null, avatar: string | null): Promise<string>;

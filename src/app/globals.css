@@ -57,6 +57,16 @@ body {
   color: var(--color-cream);
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  /* The game never scrolls: every screen is laid out to fit the viewport. */
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Opt-in scrolling for tools that are not part of the game (admin). */
+.scroll-page {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
 }
 
 body {

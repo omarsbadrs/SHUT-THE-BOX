@@ -20,7 +20,7 @@ import { Board } from "@/components/game/board";
 import { Die } from "@/components/game/dice";
 import { ShutBoxCelebration } from "@/components/game/overlays";
 import { PageShell } from "@/components/page-shell";
-import { GameButton, Toggle } from "@/components/ui/primitives";
+import { GameButton, Sheet, Toggle } from "@/components/ui/primitives";
 import { haptic, sfx, unlockAudio } from "@/lib/client/feedback";
 import { setPrefs, usePrefs } from "@/lib/client/prefs";
 import { recordSoloGame, useSoloStats } from "@/lib/client/solo-stats";
@@ -50,6 +50,7 @@ export default function PracticePage() {
   const [celebrate, setCelebrate] = useState(false);
   const [diceCount, setDiceCount] = useState<1 | 2>(2);
   const [rolling, setRolling] = useState(false);
+  const [menu, setMenu] = useState(false);
 
   const oneDie = canUseOneDie(open, settings);
   const total = roll?.total ?? 0;
@@ -110,8 +111,15 @@ export default function PracticePage() {
   const avg = stats.games ? stats.total / stats.games : null;
 
   return (
-    <PageShell title={t("practiceTitle")}>
-      <div className="mb-3 grid grid-cols-5 gap-1.5 text-center" data-testid="solo-stats">
+    <PageShell
+      title={t("practiceTitle")}
+      right={
+        <button type="button" onClick={() => setMenu(true)} className="glass h-10 w-10 shrink-0 rounded-xl text-lg" aria-label={t("settings")} data-testid="practice-menu">
+          ⚙
+        </button>
+      }
+    >
+      <div className="mb-2 grid shrink-0 grid-cols-5 gap-1.5 text-center" data-testid="solo-stats">
         {[
           [t("bestScore"), stats.best === null ? "—" : n(stats.best)],
           [t("averageScore"), avg === null ? "—" : n(avg.toFixed(1))],
@@ -119,22 +127,22 @@ export default function PracticePage() {
           [t("streak"), n(stats.streak)],
           [t("gamesPlayed"), n(stats.games)],
         ].map(([k, v]) => (
-          <div key={k} className="glass rounded-xl px-1 py-1.5">
-            <div className="text-[9px] font-bold tracking-wider text-white/50 uppercase">{k}</div>
-            <div className="text-lg font-extrabold">{v}</div>
+          <div key={k} className="glass min-w-0 rounded-xl px-1 py-1">
+            <div className="truncate text-[9px] font-bold tracking-wider text-white/50 uppercase">{k}</div>
+            <div className="text-base leading-tight font-extrabold">{v}</div>
           </div>
         ))}
       </div>
 
-      <div className="flex min-h-[170px] flex-col items-center justify-center gap-2">
+      <div className="flex min-h-[112px] flex-1 flex-col items-center justify-center gap-2">
         {roll ? (
           <>
             <div className="flex items-center gap-4">
-              <Die value={roll.die1} color={color} rollKey={roll.key} size={66} testId="solo-die-1" />
+              <Die value={roll.die1} color={color} rollKey={roll.key} size={60} testId="solo-die-1" />
               {roll.die2 !== null && (
                 <>
                   <span className="text-2xl font-extrabold text-white/50">+</span>
-                  <Die value={roll.die2} color={color} rollKey={roll.key} size={66} />
+                  <Die value={roll.die2} color={color} rollKey={roll.key} size={60} />
                 </>
               )}
               {!rolling && (
@@ -146,7 +154,23 @@ export default function PracticePage() {
             </div>
             {!rolling && !over && <div className="text-base font-extrabold">{t("chooseTiles", { total: roll.total })}</div>}
           </>
-        ) : over ? null : (
+        ) : over ? null : review && prefs.trainer && review.options.length > 1 ? (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass w-full rounded-2xl p-2.5" data-testid="trainer">
+            <div className="mb-1.5 text-xs font-bold text-white/60">{t("otherCombos")}</div>
+            <div className="flex max-h-[4.2rem] flex-wrap gap-1.5 overflow-hidden">
+              {review.options.slice(0, 6).map((o, i) => {
+                const chosen = o.tiles.join() === review.chosen.join();
+                return (
+                  <span key={o.tiles.join()} className={`rounded-full px-2.5 py-1 text-sm font-bold ${chosen ? "bg-[#ffcf4a] text-[#2a1a00]" : "bg-white/8"}`}>
+                    {o.tiles.map((x) => n(x)).join(" + ")}
+                    {i === 0 && <span className="ms-1 text-[10px] opacity-80">★ {t("bestMove")}</span>}
+                    <span className="ms-1 text-[10px] opacity-60">{t("expected", { n: o.expectedScore.toFixed(1) })}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : (
           <div className="text-center text-3xl font-extrabold text-white/80">{t("yourTurn")}</div>
         )}
         {over && (
@@ -157,13 +181,22 @@ export default function PracticePage() {
         )}
       </div>
 
-      <Board color={color} openTiles={open} selected={selected} interactive={awaiting} onToggle={(v) => {
-        sfx.select();
-        haptic.select();
-        setSelected((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v]));
-      }} active={!over} />
+      <div className="mx-auto w-full shrink-0" style={{ maxWidth: "min(100%, calc((100dvh - 390px) * 1.8))" }}>
+        <Board
+          color={color}
+          openTiles={open}
+          selected={selected}
+          interactive={awaiting}
+          onToggle={(v) => {
+            sfx.select();
+            haptic.select();
+            setSelected((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v]));
+          }}
+          active={!over}
+        />
+      </div>
 
-      <div className="mt-3 grid gap-2">
+      <div className="mt-2 grid shrink-0 gap-2 pb-2">
         {awaiting ? (
           <>
             <div className="text-center font-extrabold">
@@ -205,30 +238,12 @@ export default function PracticePage() {
         )}
       </div>
 
-      <AnimatePresence>
-        {review && prefs.trainer && review.options.length > 1 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="glass mt-4 rounded-2xl p-3" data-testid="trainer">
-            <div className="mb-2 text-xs font-bold text-white/60">{t("otherCombos")}</div>
-            <div className="flex flex-wrap gap-1.5">
-              {review.options.map((o, i) => {
-                const chosen = o.tiles.join() === review.chosen.join();
-                return (
-                  <span key={o.tiles.join()} className={`rounded-full px-2.5 py-1 text-sm font-bold ${chosen ? "bg-[#ffcf4a] text-[#2a1a00]" : "bg-white/8"}`}>
-                    {o.tiles.map((x) => n(x)).join(" + ")}
-                    {i === 0 && <span className="ms-1 text-[10px] opacity-80">★ {t("bestMove")}</span>}
-                    <span className="ms-1 text-[10px] opacity-60">{t("expected", { n: o.expectedScore.toFixed(1) })}</span>
-                  </span>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mt-6 grid gap-2 pb-6">
-        <Toggle checked={prefs.trainer} onChange={(v) => setPrefs({ trainer: v })} label={`🎓 ${t("trainer")}`} />
-        <Toggle checked={oneDieRule} onChange={setOneDieRule} label={t("oneDie")} />
-      </div>
+      <Sheet open={menu} onClose={() => setMenu(false)} title={t("settings")}>
+        <div className="grid gap-2 pb-6">
+          <Toggle checked={prefs.trainer} onChange={(v) => setPrefs({ trainer: v })} label={`🎓 ${t("trainer")}`} testId="trainer-toggle" />
+          <Toggle checked={oneDieRule} onChange={setOneDieRule} label={t("oneDie")} />
+        </div>
+      </Sheet>
 
       <AnimatePresence>{celebrate && <ShutBoxCelebration name="" color={color} isMe onDone={() => setCelebrate(false)} />}</AnimatePresence>
     </PageShell>

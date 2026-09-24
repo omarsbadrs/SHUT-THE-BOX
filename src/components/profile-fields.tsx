@@ -27,7 +27,7 @@ export function ProfileFields({
 }) {
   const { t } = useI18n();
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-5">
+    <div className="grid min-w-0 grid-cols-1 gap-3">
       <Field label={t("nickname")}>
         <TextInput
           value={nickname}
@@ -41,14 +41,16 @@ export function ProfileFields({
         />
       </Field>
       <Field label={t("avatar")}>
-        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1">
+        {/* two rows of eight: always fits, never scrolls */}
+        <div className="grid grid-cols-8 gap-1.5">
           {AVATARS.map((a) => (
             <button
               type="button"
               key={a}
               onClick={() => setAvatar(a)}
               aria-pressed={a === avatar}
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl transition ${a === avatar ? "scale-110 bg-[#ffcf4a]/25 ring-2 ring-[#ffcf4a]" : "bg-white/5"}`}
+              aria-label={a}
+              className={`flex aspect-square min-w-0 items-center justify-center rounded-xl text-[clamp(1.1rem,5.5vw,1.6rem)] transition ${a === avatar ? "bg-[#ffcf4a]/25 ring-2 ring-[#ffcf4a]" : "bg-white/5"}`}
             >
               {a}
             </button>
@@ -58,7 +60,7 @@ export function ProfileFields({
       <Field label={t("colorPreference")}>
         <div className={`grid gap-2 ${allowAny ? "grid-cols-5" : "grid-cols-4"}`}>
           {allowAny && (
-            <button type="button" onClick={() => setColor(null)} aria-pressed={color === null} className={`h-14 rounded-2xl text-xs font-extrabold ${color === null ? "bg-white/20 ring-2 ring-white" : "bg-white/5"}`}>
+            <button type="button" onClick={() => setColor(null)} aria-pressed={color === null} className={`h-12 rounded-2xl text-xs font-extrabold ${color === null ? "bg-white/20 ring-2 ring-white" : "bg-white/5"}`}>
               {t("colorAny")}
             </button>
           )}
@@ -73,7 +75,7 @@ export function ProfileFields({
                 onClick={() => setColor(c)}
                 aria-pressed={color === c}
                 data-testid={`color-${c}`}
-                className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[10px] font-extrabold transition disabled:opacity-25 ${color === c ? "scale-105 ring-2 ring-[#ffcf4a]" : ""}`}
+                className={`flex h-12 flex-col items-center justify-center gap-0.5 rounded-2xl text-[10px] font-extrabold transition disabled:opacity-25 ${color === c ? "scale-105 ring-2 ring-[#ffcf4a]" : ""}`}
                 style={{ background: `linear-gradient(180deg, ${s.light}, ${s.base})`, color: s.text }}
               >
                 <ColorIcon color={c} size={14} className="drop-shadow" />

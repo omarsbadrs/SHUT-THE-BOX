@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { serverNow } from "@/lib/client/api";
 import { useI18n } from "@/lib/i18n/context";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
@@ -17,6 +17,20 @@ export function useServerNow(intervalMs = 250): number {
 }
 
 /** Transient toast message. */
+const subscribeResize = (fn: () => void) => {
+  window.addEventListener("resize", fn);
+  return () => window.removeEventListener("resize", fn);
+};
+
+/** True on short phone screens (e.g. iPhone SE with Safari bars) where layouts must tighten further. */
+export function useShortScreen(maxHeight = 620): boolean {
+  return useSyncExternalStore(
+    subscribeResize,
+    () => window.innerHeight <= maxHeight,
+    () => false,
+  );
+}
+
 export function useToast(ms = 2600) {
   const [message, setMessage] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);

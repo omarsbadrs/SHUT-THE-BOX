@@ -17,7 +17,7 @@ import { GameButton, GameLink } from "./ui/primitives";
 
 export function FullScreenMessage({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-dvh max-w-[520px] flex-col items-center justify-center gap-5 px-6 text-center">
+    <div className="mx-auto flex h-dvh max-w-[520px] flex-col items-center justify-center gap-5 overflow-hidden px-6 text-center">
       <div className="text-3xl font-extrabold text-[#ffcf4a]" data-testid="fullscreen-message">
         {title}
       </div>
@@ -28,7 +28,7 @@ export function FullScreenMessage({ title, children }: { title: string; children
 
 export function Loading() {
   return (
-    <div className="flex min-h-dvh items-center justify-center">
+    <div className="flex h-dvh items-center justify-center">
       <div className="h-12 w-12 animate-spin rounded-xl border-4 border-[#ffcf4a] border-t-transparent" />
     </div>
   );
@@ -80,7 +80,13 @@ export function RoomClient({ code }: { code: string }) {
           room={room}
           title={t("gameHangman")}
           summary={<HangmanSettingsSummary settings={state.settings} />}
-          renderEditor={(draft, setDraft) => <HangmanSettingsForm value={draft as unknown as HangmanSettings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />}
+          editorSteps={(draft, setDraft) =>
+            (["game", "rules"] as const).map((section) => ({
+              key: section,
+              title: t(`step_${section}`),
+              content: <HangmanSettingsForm section={section} value={draft as unknown as HangmanSettings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />,
+            }))
+          }
         />
       );
     return <HangmanView room={room} />;
@@ -91,7 +97,13 @@ export function RoomClient({ code }: { code: string }) {
         room={room}
         title={t("gameShut10")}
         summary={<SettingsSummary settings={state.settings} />}
-        renderEditor={(draft, setDraft) => <SettingsForm value={draft as unknown as GameSettings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />}
+        editorSteps={(draft, setDraft) =>
+          (["game", "rules", "more"] as const).map((section) => ({
+            key: section,
+            title: t(`step_${section}`),
+            content: <SettingsForm section={section} value={draft as unknown as GameSettings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />,
+          }))
+        }
         devPanel={<DevPanel state={state} me={room.me} send={(c) => void room.send(c)} />}
       />
     );

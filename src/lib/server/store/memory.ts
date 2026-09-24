@@ -1,6 +1,6 @@
 import "server-only";
 import { EventEmitter } from "node:events";
-import type { AdminOverview, AnalyticsRow, MatchSummary, RoomStore, ServerRoomState, StoredEvent as GameEvent } from "./types";
+import type { AdminOverview, AnalyticsRow, AnyMatchSummary as MatchSummary, RoomStore, ServerRoomState, StoredEvent as GameEvent } from "./types";
 
 /**
  * Single-process store for local development and the Playwright suite.

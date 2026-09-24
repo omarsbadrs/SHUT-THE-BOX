@@ -32,8 +32,9 @@ test("word master: the secret word never reaches guessers; guesses sync to every
   await omar.getByTestId("home-hm-create").click();
   await omar.getByTestId("nickname").fill("Omar");
   await omar.getByTestId("color-blue").click();
+  await omar.getByTestId("create-next").click();
   await omar.getByTestId("hm-mode").getByRole("button", { name: "Word master" }).click();
-  await omar.getByTestId("create-game").click();
+  await omar.getByTestId("create-finish-now").click();
   await expect(omar.getByTestId("lobby")).toBeVisible();
   await expect(omar.getByTestId("lobby-title")).toHaveText("HANGMAN");
   const code = (await omar.getByTestId("lobby-code").innerText()).trim();

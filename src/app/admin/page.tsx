@@ -61,7 +61,8 @@ export default function AdminPage() {
   const s = overview.stats;
   const pct = (x: number) => `${Math.round(x * 100)}%`;
   return (
-    <main className="mx-auto w-full max-w-[1100px] px-4 py-6">
+    <main className="scroll-page">
+      <div className="mx-auto w-full max-w-[1100px] px-4 py-6">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-extrabold">SHUT10 Admin</h1>
         <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">
@@ -151,6 +152,7 @@ export default function AdminPage() {
           ))}
         </div>
       </section>
+      </div>
     </main>
   );
 }

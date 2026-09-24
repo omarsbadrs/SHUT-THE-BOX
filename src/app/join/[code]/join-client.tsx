@@ -94,19 +94,24 @@ export function JoinClient({ code }: { code: string }) {
   return (
     <PageShell title={t("joinRoom")} back="/join">
       <Toast message={toast.message} />
-      <div className="glass mb-5 rounded-3xl p-4 text-center">
-        <div className="text-xs font-bold tracking-[0.3em] text-white/60">{t("roomCode")}</div>
-        <div className="text-4xl font-extrabold tracking-[0.18em] text-[#ffcf4a]" dir="ltr">
-          {preview.code}
+      <div className="glass mb-3 shrink-0 rounded-2xl p-2.5">
+        <div className="flex items-center gap-3">
+          <div className="text-3xl font-extrabold tracking-[0.14em] text-[#ffcf4a]" dir="ltr">
+            {preview.code}
+          </div>
+          <div className="min-w-0 flex-1 text-end text-xs leading-tight font-bold text-white/70">
+            <div className="truncate" data-testid="join-game">
+              {t(preview.game === "hangman" ? "gameHangman" : "gameShut10")}
+            </div>
+            <div className="truncate">
+              {t(`mode_${preview.gameMode}` as MessageKey)} · {t("playersCount", { n: n(preview.players.length), max: n(preview.maxPlayers) })}
+            </div>
+          </div>
         </div>
-        <div className="mt-1 text-sm font-bold text-white/70">
-          <span data-testid="join-game">{t(preview.game === "hangman" ? "gameHangman" : "gameShut10")}</span> · {t(`mode_${preview.gameMode}` as MessageKey)} ·{" "}
-          {t("playersCount", { n: preview.players.length, max: preview.maxPlayers })}
-        </div>
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
           {preview.players.map((p) => (
-            <span key={p.color} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-extrabold" style={{ background: PLAYER_STYLE[p.color].dark }}>
-              <ColorIcon color={p.color} size={10} /> {p.avatar} {p.nickname} {p.isHost && "👑"}
+            <span key={p.color} className="inline-flex max-w-[48%] items-center gap-1 rounded-full px-2 py-0.5 text-xs font-extrabold" style={{ background: PLAYER_STYLE[p.color].dark }}>
+              <ColorIcon color={p.color} size={9} /> {p.avatar} <span className="truncate">{p.nickname}</span> {p.isHost && "👑"}
             </span>
           ))}
         </div>
@@ -126,7 +131,7 @@ export function JoinClient({ code }: { code: string }) {
         </div>
       ) : (
         <>
-          <div className="pb-28">
+          <div className="-mx-1.5 min-h-0 flex-1 overflow-hidden px-1.5 pt-1">
             <ProfileFields
               nickname={nickname}
               setNickname={setNickname}
@@ -136,14 +141,11 @@ export function JoinClient({ code }: { code: string }) {
               setColor={setColor}
               takenColors={preview.takenColors}
             />
-            <div className="mt-3 text-center text-xs text-white/50">{t("playersCount", { n: n(preview.players.length), max: n(preview.maxPlayers) })}</div>
           </div>
-          <div className="fixed inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#07120d] via-[#07120d]/95 to-transparent px-4 pt-6 safe-bottom">
-            <div className="mx-auto max-w-[520px]">
-              <GameButton className="w-full" onClick={join} disabled={busy} data-testid="join-button">
-                {busy ? t("joining") : t("join")}
-              </GameButton>
-            </div>
+          <div className="shrink-0 pt-2 pb-2">
+            <GameButton className="w-full" onClick={join} disabled={busy} data-testid="join-button">
+              {busy ? t("joining") : t("join")}
+            </GameButton>
           </div>
         </>
       )}

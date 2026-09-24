@@ -30,7 +30,9 @@ export function PreferenceToggles() {
 
 export function HistoryList({ state }: { state: RoomState }) {
   const { t, n } = useI18n();
-  const items = [...state.history].reverse();
+  // Latest entries only — as many as fit the sheet, so the list never scrolls.
+  const fit = typeof window !== "undefined" ? Math.max(5, Math.floor((window.innerHeight * 0.55) / 34)) : 10;
+  const items = [...state.history].reverse().slice(0, fit);
   if (!items.length) return <div className="py-6 text-center text-white/50">{t("noHistory")}</div>;
   const line = (h: HistoryEntry) => {
     const plus = (xs: number[]) => xs.map((x) => n(x)).join(" + ");
@@ -54,7 +56,7 @@ export function HistoryList({ state }: { state: RoomState }) {
     }
   };
   return (
-    <ol className="max-h-[50dvh] space-y-1 overflow-y-auto" data-testid="history">
+    <ol className="space-y-1 overflow-hidden" data-testid="history">
       {items.map((h) => {
         const p = getPlayer(state, h.playerId);
         return (
