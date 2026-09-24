@@ -1,8 +1,7 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { GameEvent, ServerRoomState } from "@/game-engine";
 import { env } from "../env";
-import type { AdminOverview, AnalyticsRow, MatchSummary, RoomStore } from "./types";
+import type { AdminOverview, AnalyticsRow, MatchSummary, RoomStore, ServerRoomState, StoredEvent as GameEvent } from "./types";
 
 /**
  * Supabase-backed store. Every operation is a SECURITY DEFINER RPC executed

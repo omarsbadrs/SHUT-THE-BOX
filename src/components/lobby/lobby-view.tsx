@@ -2,17 +2,17 @@
 
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { COLORS, MIN_PLAYERS, type Command, type GameSettings, type PlayerColor, type RoomPlayer } from "@/game-engine";
+import { useState, type ReactNode } from "react";
+import { COLORS, MIN_PLAYERS, type PlayerColor, type RoomPlayer } from "@/game-engine";
+import type { AnyCommand } from "@/lib/client/games";
 import type { RoomHandle } from "@/lib/client/use-room";
 import { useI18n } from "@/lib/i18n/context";
 import { Avatar, ConnectionDot } from "../game/player-badge";
 import { ColorIcon, PLAYER_STYLE } from "../game/theme";
-import { DevPanel, PreferenceToggles } from "../game/menu";
+import { PreferenceToggles } from "../game/menu";
 import { useErrorText, useToast } from "../ui/hooks";
 import { GameButton, Sheet, Toast } from "../ui/primitives";
 import { InvitePanel } from "./invite";
-import { SettingsForm, SettingsSummary } from "./settings-form";
 
 /** Seat positions around the table, matching the physical set. */
 const SEAT_AREA: Record<PlayerColor, string> = { green: "top", red: "right", blue: "bottom", yellow: "left" };
@@ -78,7 +78,20 @@ function Seat({
   );
 }
 
-export function LobbyView({ room }: { room: RoomHandle }) {
+/** Shared lobby for every game; the game supplies its settings summary, editor and dev tools. */
+export function LobbyView({
+  room,
+  summary,
+  renderEditor,
+  devPanel,
+  title,
+}: {
+  room: RoomHandle;
+  summary: ReactNode;
+  renderEditor: (draft: Record<string, unknown>, setDraft: (d: Record<string, unknown>) => void) => ReactNode;
+  devPanel?: ReactNode;
+  title?: string;
+}) {
   const { t, n } = useI18n();
   const router = useRouter();
   const state = room.state!;
@@ -86,7 +99,7 @@ export function LobbyView({ room }: { room: RoomHandle }) {
   const isHost = state.hostId === me;
   const toast = useToast();
   const errText = useErrorText();
-  const [editing, setEditing] = useState<GameSettings | null>(null);
+  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [seatMenu, setSeatMenu] = useState<RoomPlayer | null>(null);
   const [menu, setMenu] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -95,7 +108,7 @@ export function LobbyView({ room }: { room: RoomHandle }) {
   const mine = players.find((p) => p.id === me);
   const allReady = players.length >= MIN_PLAYERS && players.every((p) => p.isReady);
 
-  const send = async (c: Command) => {
+  const send = async (c: AnyCommand) => {
     const res = await room.send(c);
     if (!res.ok) toast.show(errText(res.error));
     return res;
@@ -128,7 +141,7 @@ export function LobbyView({ room }: { room: RoomHandle }) {
         <button type="button" onClick={leave} className="glass rounded-xl px-3 py-2 text-sm font-bold">
           ← {t("leaveRoom")}
         </button>
-        <span className="text-sm font-extrabold tracking-[0.25em] text-white/70">{t("lobby")}</span>
+        <span className="text-sm font-extrabold tracking-[0.25em] text-white/70" data-testid="lobby-title">{title ?? t("lobby")}</span>
         <button type="button" onClick={() => setMenu(true)} className="glass h-10 w-10 rounded-xl" aria-label={t("settings")}>
           ☰
         </button>
@@ -155,10 +168,10 @@ export function LobbyView({ room }: { room: RoomHandle }) {
         </div>
       </div>
 
-      <SettingsSummary settings={state.settings} />
+      {summary}
       {isHost && (
         <div className="flex justify-center gap-2">
-          <GameButton size="sm" variant="ghost" onClick={() => setEditing(state.settings)} data-testid="edit-settings">
+          <GameButton size="sm" variant="ghost" onClick={() => setEditing({ ...state.settings } as Record<string, unknown>)} data-testid="edit-settings">
             ⚙ {t("editSettings")}
           </GameButton>
           {players.length < state.settings.maxPlayers && (
@@ -197,7 +210,7 @@ export function LobbyView({ room }: { room: RoomHandle }) {
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t("editSettings")}>
         {editing && (
           <div className="grid min-w-0 grid-cols-1 gap-4 pb-6">
-            <SettingsForm value={editing} onChange={setEditing} />
+            {renderEditor(editing, setEditing)}
             <div className="grid grid-cols-2 gap-2">
               <GameButton size="md" variant="dark" onClick={() => setEditing(null)}>
                 {t("cancel")}
@@ -206,7 +219,7 @@ export function LobbyView({ room }: { room: RoomHandle }) {
                 size="md"
                 variant="green"
                 onClick={async () => {
-                  const res = await send({ type: "UPDATE_SETTINGS", settings: editing });
+                  const res = await send({ type: "UPDATE_SETTINGS", settings: editing } as AnyCommand);
                   if (res.ok) setEditing(null);
                 }}
               >
@@ -240,7 +253,7 @@ export function LobbyView({ room }: { room: RoomHandle }) {
       <Sheet open={menu} onClose={() => setMenu(false)} title={t("settings")}>
         <div className="grid gap-3 pb-6">
           <PreferenceToggles />
-          {room.config?.devTools && <DevPanel state={state} me={me} send={(c) => void send(c)} />}
+          {room.config?.devTools && devPanel}
           <div className="text-center text-xs text-white/40">
             {state.code} · v{n(state.version)}
           </div>

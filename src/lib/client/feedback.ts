@@ -95,6 +95,26 @@ export const sfx = {
   countdown(final = false) {
     tone(final ? 880 : 440, final ? 0.35 : 0.12, { type: "square", gain: 0.06 });
   },
+  /** Chalk scratching across the board (a new body part is drawn). */
+  chalk() {
+    for (let i = 0; i < 6; i++) noise(0.07, { delay: i * 0.07, freq: 3200 + i * 300, q: 3, gain: 0.12 });
+  },
+  chalkTap() {
+    noise(0.03, { freq: 4000, q: 2, gain: 0.18 });
+  },
+  letterRight(count = 1) {
+    for (let i = 0; i < Math.min(count, 4); i++) tone(740 + i * 120, 0.16, { type: "triangle", gain: 0.13, delay: i * 0.08 });
+  },
+  letterWrong() {
+    tone(180, 0.22, { type: "sawtooth", gain: 0.06, slide: 0.7 });
+  },
+  hanged() {
+    tone(196, 0.6, { type: "sine", gain: 0.16, slide: 0.5 });
+    tone(147, 0.9, { type: "sine", gain: 0.12, delay: 0.35, slide: 0.6 });
+  },
+  saved() {
+    [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, { type: "triangle", gain: 0.14, delay: i * 0.1 }));
+  },
 };
 
 export const haptic = {

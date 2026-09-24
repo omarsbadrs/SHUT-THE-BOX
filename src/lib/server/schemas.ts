@@ -37,8 +37,10 @@ const profile = {
 
 export const createRoomSchema = z.object({
   ...profile,
+  game: z.enum(["shut10", "hangman"]).optional(),
   color: color.nullable().optional(),
-  settings: settingsSchema.optional(),
+  /** Validated per game by the registry (games.ts). */
+  settings: z.record(z.string(), z.unknown()).optional(),
 });
 
 /** Every command a client may send. Admin-only commands are not accepted here. */
@@ -64,6 +66,8 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("SPECTATE") }),
   z.object({ type: z.literal("TICK") }),
   z.object({ type: z.literal("CLOSE_ROOM") }),
+  // Engine refuses unless the caller is an admin.
+  z.object({ type: z.literal("ADMIN_SET_TILES"), playerId: id, openTiles: z.array(tile).max(10) }),
   z.object({ type: z.literal("DEV_FORCE_DICE"), dice: z.array(z.tuple([die, die])).max(50) }),
   z.object({ type: z.literal("DEV_SET_TURN"), playerId: id }),
   z.object({ type: z.literal("DEV_SET_TILES"), playerId: id, openTiles: z.array(tile).max(10) }),
@@ -74,8 +78,9 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("DEV_ADD_FAKE_PLAYERS"), count: z.number().int().min(1).max(3) }),
 ]);
 
+/** Envelope only; the command body is validated by the room's game (games.ts). */
 export const commandRequestSchema = z.object({
-  command: commandSchema,
+  command: z.object({ type: z.string().min(1).max(40) }).passthrough(),
   commandId: z.string().min(8).max(64).optional(),
 });
 

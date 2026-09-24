@@ -92,7 +92,7 @@ export interface CommandResponse {
 }
 
 /** Sends an intent. Retries once on network failure with the same idempotency key. */
-export async function sendCommand(code: string, command: Command): Promise<ApiResult<CommandResponse> & Partial<CommandResponse>> {
+export async function sendCommand(code: string, command: Command | { type: string; [k: string]: unknown }): Promise<ApiResult<CommandResponse> & Partial<CommandResponse>> {
   const commandId = command.type === "TICK" ? undefined : newCommandId();
   const body = JSON.stringify({ command, commandId });
   let res = await apiFetch<CommandResponse>(`/api/rooms/${code}/command`, { method: "POST", body });

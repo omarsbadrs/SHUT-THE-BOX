@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { applyEvent, nextWakeAt, type Command, type GameEvent, type RoomState } from "@/game-engine";
-import { apiFetch, getConfig, sendCommand, serverNow, type ApiError, type RuntimeConfig, type StateResponse } from "./api";
+import type { HangmanPersonal } from "@/games/hangman";
+import { apiFetch, getConfig, sendCommand, serverNow, type ApiError, type RuntimeConfig } from "./api";
+import { applyAny, displayDelay, wakeAny, type AnyClientEvent, type AnyCommand, type AnyRoomState } from "./games";
 import { openFeed, openPresence, type Feed } from "./realtime";
 
 /**
@@ -21,35 +22,11 @@ export type RoomStatus = "loading" | "ready" | "not_member" | "not_found" | "err
 export type NetStatus = "online" | "reconnecting" | "offline";
 
 const HEARTBEAT_MS = 8000;
-const FAST_FORWARD_BACKLOG = 10;
-
-function displayDelay(e: GameEvent, backlog: number): number {
-  if (backlog > FAST_FORWARD_BACKLOG) return 0;
-  switch (e.type) {
-    case "DICE_ROLLED":
-      return e.validCount === 0 ? 2100 : 950;
-    case "PLAYER_BLOCKED":
-      return 1500;
-    case "TILES_CLOSED":
-      return 550;
-    case "PLAYER_SHUT_BOX":
-      return 2800;
-    case "EXTRA_TURN":
-      return 900;
-    case "TURN_SKIPPED":
-      return 700;
-    case "ROUND_COMPLETED":
-      return 200;
-    default:
-      return 0;
-  }
-}
-
 export interface RoomHandle {
   status: RoomStatus;
   errorCode: string | null;
-  state: RoomState | null;
-  auth: RoomState | null;
+  state: AnyRoomState | null;
+  auth: AnyRoomState | null;
   me: string | null;
   spectator: boolean;
   net: NetStatus;
@@ -57,16 +34,18 @@ export interface RoomHandle {
   realtimeHealthy: boolean;
   config: RuntimeConfig | null;
   presence: Set<string>;
-  send: (command: Command) => Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: ApiError }>;
-  subscribe: (fn: (e: GameEvent, after: RoomState) => void) => () => void;
+  /** Viewer-only data from the server (Hangman: own secret word / private race board). */
+  personal: HangmanPersonal | null;
+  send: (command: AnyCommand) => Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: ApiError }>;
+  subscribe: (fn: (e: AnyClientEvent, after: AnyRoomState) => void) => () => void;
   reload: () => void;
 }
 
 export function useRoom(code: string): RoomHandle {
   const [status, setStatus] = useState<RoomStatus>("loading");
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [display, setDisplay] = useState<RoomState | null>(null);
-  const [auth, setAuth] = useState<RoomState | null>(null);
+  const [display, setDisplay] = useState<AnyRoomState | null>(null);
+  const [auth, setAuth] = useState<AnyRoomState | null>(null);
   const [me, setMe] = useState<string | null>(null);
   const [spectator, setSpectator] = useState(false);
   const [net, setNet] = useState<NetStatus>("online");
@@ -74,21 +53,22 @@ export function useRoom(code: string): RoomHandle {
   const [realtimeHealthy, setRealtimeHealthy] = useState(false);
   const [config, setConfig] = useState<RuntimeConfig | null>(null);
   const [presence, setPresence] = useState<Set<string>>(new Set());
+  const [personal, setPersonal] = useState<HangmanPersonal | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const authRef = useRef<RoomState | null>(null);
-  const displayRef = useRef<RoomState | null>(null);
-  const queueRef = useRef<GameEvent[]>([]);
+  const authRef = useRef<AnyRoomState | null>(null);
+  const displayRef = useRef<AnyRoomState | null>(null);
+  const queueRef = useRef<AnyClientEvent[]>([]);
   const pumpingRef = useRef(false);
   const pumpTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const listeners = useRef(new Set<(e: GameEvent, after: RoomState) => void>());
+  const listeners = useRef(new Set<(e: AnyClientEvent, after: AnyRoomState) => void>());
   const resyncing = useRef(false);
   const resyncAgain = useRef(false);
   const failures = useRef(0);
   const meRef = useRef<string | null>(null);
   const alive = useRef(true);
 
-  const setSnapshot = useCallback((state: RoomState) => {
+  const setSnapshot = useCallback((state: AnyRoomState) => {
     authRef.current = state;
     displayRef.current = state;
     queueRef.current = [];
@@ -108,7 +88,7 @@ export function useRoom(code: string): RoomHandle {
         return;
       }
       const backlog = queueRef.current.length;
-      const after = applyEvent(displayRef.current, next);
+      const after = applyAny(displayRef.current, next);
       displayRef.current = after;
       setDisplay(after);
       for (const l of listeners.current) {
@@ -135,11 +115,14 @@ export function useRoom(code: string): RoomHandle {
     if (!base) return;
     resyncing.current = true;
     try {
-      const res = await apiFetch<{ events?: GameEvent[]; reset?: RoomState; version: number; me?: string | null }>(
+      const res = await apiFetch<{ events?: AnyClientEvent[]; reset?: AnyRoomState; personal?: HangmanPersonal | null; version: number; me?: string | null }>(
         `/api/rooms/${code}/events?since=${base.version}`,
       );
       if (!alive.current || !res.ok) return;
-      if (res.reset) setSnapshot(res.reset);
+      if (res.reset) {
+        setSnapshot(res.reset);
+        setPersonal(res.personal ?? null);
+      }
       else if (res.events?.length) ingestRef.current(res.events);
     } finally {
       resyncing.current = false;
@@ -151,7 +134,7 @@ export function useRoom(code: string): RoomHandle {
   }, [code, setSnapshot]);
 
   const ingest = useCallback(
-    (events: GameEvent[]) => {
+    (events: AnyClientEvent[]) => {
       let base = authRef.current;
       if (!base || events.length === 0) return;
       const sorted = [...events].sort((a, b) => a.seq - b.seq);
@@ -162,7 +145,7 @@ export function useRoom(code: string): RoomHandle {
           gap = true;
           break;
         }
-        base = applyEvent(base, e);
+        base = applyAny(base, e);
         queueRef.current.push(e);
       }
       if (base !== authRef.current) {
@@ -184,7 +167,10 @@ export function useRoom(code: string): RoomHandle {
     alive.current = true;
     let cancelled = false;
     (async () => {
-      const [cfg, res] = await Promise.all([getConfig(), apiFetch<StateResponse>(`/api/rooms/${code}/state`)]);
+      const [cfg, res] = await Promise.all([
+        getConfig(),
+        apiFetch<{ state: AnyRoomState; me: string | null; spectator: boolean; personal: HangmanPersonal | null }>(`/api/rooms/${code}/state`),
+      ]);
       if (cancelled) return;
       setConfig(cfg);
       if (!res.ok) {
@@ -195,6 +181,7 @@ export function useRoom(code: string): RoomHandle {
       meRef.current = res.me;
       setMe(res.me);
       setSpectator(res.spectator);
+      setPersonal(res.personal ?? null);
       setSnapshot(res.state);
       setStatus("ready");
     })();
@@ -233,7 +220,7 @@ export function useRoom(code: string): RoomHandle {
         timer = setTimeout(beat, HEARTBEAT_MS);
         return;
       }
-      const res = await apiFetch<{ version: number; me: string | null; events: GameEvent[] }>(`/api/rooms/${code}/heartbeat`, { method: "POST" });
+      const res = await apiFetch<{ version: number; me: string | null; events: AnyClientEvent[] }>(`/api/rooms/${code}/heartbeat`, { method: "POST" });
       if (!alive.current) return;
       if (res.ok) {
         if (failures.current > 0) setRestoredAt(serverNow());
@@ -276,7 +263,7 @@ export function useRoom(code: string): RoomHandle {
   // Tick at the next server deadline.
   useEffect(() => {
     if (status !== "ready" || !auth) return;
-    const wake = nextWakeAt(auth, serverNow());
+    const wake = wakeAny(auth, serverNow());
     if (wake === null) return;
     const delay = Math.max(250, wake - serverNow() + 150 + Math.random() * 400);
     const id = setTimeout(async () => {
@@ -290,6 +277,8 @@ export function useRoom(code: string): RoomHandle {
     async (command) => {
       const res = await sendCommand(code, command);
       if (res.events?.length) ingestRef.current(res.events);
+      if (res.ok && res.data && "personal" in res.data) setPersonal(res.data.personal as HangmanPersonal);
+      if (res.ok && res.data && typeof res.data.secret === "string") setPersonal((p) => ({ race: p?.race ?? null, secret: res.data!.secret as string }));
       if (res.ok && res.me !== undefined && res.me !== meRef.current) {
         meRef.current = res.me ?? null;
         setMe(res.me ?? null);
@@ -313,5 +302,5 @@ export function useRoom(code: string): RoomHandle {
     setReloadKey((k) => k + 1);
   }, []);
 
-  return { status, errorCode, state: display, auth, me, spectator, net, restoredAt, realtimeHealthy, config, presence, send, subscribe, reload };
+  return { status, errorCode, state: display, auth, me, spectator, net, restoredAt, realtimeHealthy, config, presence, personal, send, subscribe, reload };
 }

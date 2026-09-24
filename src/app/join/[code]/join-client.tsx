@@ -13,9 +13,11 @@ import { apiFetch, sendCommand, type ApiError } from "@/lib/client/api";
 import { unlockAudio } from "@/lib/client/feedback";
 import { setPrefs, usePrefs } from "@/lib/client/prefs";
 import { useI18n } from "@/lib/i18n/context";
+import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 interface Preview {
   code: string;
+  game: "shut10" | "hangman";
   phase: string;
   gameMode: string;
   maxPlayers: number;
@@ -98,7 +100,8 @@ export function JoinClient({ code }: { code: string }) {
           {preview.code}
         </div>
         <div className="mt-1 text-sm font-bold text-white/70">
-          {t(`mode_${preview.gameMode as "faceoff"}`)} · {t("playersCount", { n: preview.players.length, max: preview.maxPlayers })}
+          <span data-testid="join-game">{t(preview.game === "hangman" ? "gameHangman" : "gameShut10")}</span> · {t(`mode_${preview.gameMode}` as MessageKey)} ·{" "}
+          {t("playersCount", { n: preview.players.length, max: preview.maxPlayers })}
         </div>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {preview.players.map((p) => (

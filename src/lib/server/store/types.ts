@@ -1,4 +1,9 @@
-import type { GameEvent, MatchPlayerStats, MatchResult, RoomPlayer, RoundResult, GameSettings, ServerRoomState } from "@/game-engine";
+import type { GameEvent, MatchPlayerStats, MatchResult, RoomPlayer, RoundResult, GameSettings, ServerRoomState as ShutServerState } from "@/game-engine";
+import type { HangmanServerState, HmEvent } from "@/games/hangman";
+
+/** Any game's server state; stores only rely on roomId / code / version. */
+export type ServerRoomState = ShutServerState | HangmanServerState;
+export type StoredEvent = GameEvent | HmEvent;
 
 export interface MatchSummary {
   matchId: string;
@@ -56,10 +61,10 @@ export interface AdminOverview {
  */
 export interface RoomStore {
   readonly kind: "memory" | "supabase";
-  createRoom(state: ServerRoomState, events: GameEvent[]): Promise<"ok" | "code_taken">;
+  createRoom(state: ServerRoomState, events: StoredEvent[]): Promise<"ok" | "code_taken">;
   loadRoomByCode(code: string): Promise<ServerRoomState | null>;
-  commit(roomId: string, expectedVersion: number, state: ServerRoomState, events: GameEvent[]): Promise<boolean>;
-  eventsSince(roomId: string, seq: number, limit: number): Promise<GameEvent[]>;
+  commit(roomId: string, expectedVersion: number, state: ServerRoomState, events: StoredEvent[]): Promise<boolean>;
+  eventsSince(roomId: string, seq: number, limit: number): Promise<StoredEvent[]>;
   touchPresence(roomId: string, entries: Record<string, number>): Promise<void>;
   getPresence(roomId: string): Promise<Record<string, number>>;
   archiveMatch(summary: MatchSummary): Promise<void>;

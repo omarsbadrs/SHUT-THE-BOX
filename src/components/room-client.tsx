@@ -2,10 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import type { GameSettings } from "@/game-engine";
+import type { HangmanSettings } from "@/games/hangman";
+import { isHangman } from "@/lib/client/games";
 import { useRoom } from "@/lib/client/use-room";
 import { useI18n } from "@/lib/i18n/context";
 import { GameView } from "./game/game-view";
+import { DevPanel } from "./game/menu";
+import { HangmanView } from "./hangman/hangman-view";
+import { HangmanSettingsForm, HangmanSettingsSummary } from "./hangman/settings";
 import { LobbyView } from "./lobby/lobby-view";
+import { SettingsForm, SettingsSummary } from "./lobby/settings-form";
 import { GameButton, GameLink } from "./ui/primitives";
 
 export function FullScreenMessage({ title, children }: { title: string; children?: React.ReactNode }) {
@@ -39,7 +46,8 @@ export function RoomClient({ code }: { code: string }) {
   }, [room.status, code, router]);
 
   // Keep the address bar meaningful without remounting: /room/CODE in the lobby, /game/MATCH during play.
-  const matchId = state && state.phase !== "ROOM_LOBBY" && state.phase !== "FINISHED" ? state.match?.id : null;
+  // Hangman rooms always stay on /room/CODE (their matches are not archived under /game/…).
+  const matchId = state && !isHangman(state) && state.phase !== "ROOM_LOBBY" && state.phase !== "FINISHED" ? state.match?.id : null;
   useEffect(() => {
     if (!state) return;
     const target = matchId ? `/game/${matchId}` : `/room/${state.code}`;
@@ -65,6 +73,27 @@ export function RoomClient({ code }: { code: string }) {
         <GameLink href="/">{t("exit")}</GameLink>
       </FullScreenMessage>
     );
-  if (state.phase === "ROOM_LOBBY") return <LobbyView room={room} />;
+  if (isHangman(state)) {
+    if (state.phase === "ROOM_LOBBY")
+      return (
+        <LobbyView
+          room={room}
+          title={t("gameHangman")}
+          summary={<HangmanSettingsSummary settings={state.settings} />}
+          renderEditor={(draft, setDraft) => <HangmanSettingsForm value={draft as unknown as HangmanSettings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />}
+        />
+      );
+    return <HangmanView room={room} />;
+  }
+  if (state.phase === "ROOM_LOBBY")
+    return (
+      <LobbyView
+        room={room}
+        title={t("gameShut10")}
+        summary={<SettingsSummary settings={state.settings} />}
+        renderEditor={(draft, setDraft) => <SettingsForm value={draft as unknown as GameSettings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />}
+        devPanel={<DevPanel state={state} me={room.me} send={(c) => void room.send(c)} />}
+      />
+    );
   return <GameView room={room} />;
 }

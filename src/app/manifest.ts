@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "SHUT10 — Shut the Box party game",
-    short_name: "SHUT10",
-    description: "Roll. Think. Shut. Multiplayer Shut the Box for 2–4 phones.",
+    name: "Games Hub — Shut the Box & Hangman",
+    short_name: "Games Hub",
+    description: "Multiplayer party games for 2–4 phones: Shut the Box and Hangman.",
     start_url: "/",
     scope: "/",
     display: "standalone",

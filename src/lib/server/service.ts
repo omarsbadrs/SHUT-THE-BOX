@@ -1,30 +1,30 @@
 import "server-only";
 import { randomInt, randomUUID } from "node:crypto";
 import { after } from "next/server";
-import {
-  createRoom,
-  executeCommand,
-  findPlayerIdByGuest,
-  GameError,
-  secureRandom,
-  toPublicState,
-  type Command,
-  type GameEvent,
-  type PlayerColor,
-  type RoomState,
-  type ServerRoomState,
-  type GameSettings,
-} from "@/game-engine";
+import { GameError, secureRandom, type PlayerColor, type ServerRoomState as ShutServerState } from "@/game-engine";
 import { generateRoomCode, isValidRoomCode, normalizeRoomCode } from "@/lib/shared/room-code";
 import { analyticsFor } from "./analytics";
 import { devToolsEnabled } from "./env";
+import {
+  createForGame,
+  execute,
+  findPlayerByGuest,
+  gameModeOf,
+  gameOf,
+  parseCommand,
+  personalView,
+  toPublic,
+  type AnyEvent,
+  type AnyServerState,
+  type GameId,
+} from "./games";
 import { getStore } from "./store";
 import type { MatchSummary } from "./store/types";
 
 /**
- * Server-authoritative command pipeline:
- *   load → run engine (server clock + CSPRNG) → version-checked atomic commit
- *   → on conflict reload and retry. Clients only ever submit intents.
+ * Server-authoritative command pipeline (any game):
+ *   load → validate intent with the room's game → run engine (server clock +
+ *   CSPRNG) → version-checked atomic commit → on conflict reload and retry.
  */
 
 const MAX_ATTEMPTS = 6;
@@ -42,21 +42,21 @@ function codeOrThrow(raw: string): string {
   return code;
 }
 
-function sideEffects(state: ServerRoomState, events: GameEvent[]) {
+function sideEffects(state: AnyServerState, events: AnyEvent[]) {
   const store = getStore();
   const analytics = analyticsFor(state, events);
-  const completed = events.some((e) => e.type === "MATCH_COMPLETED");
+  const shutCompleted = gameOf(state) === "shut10" && events.some((e) => e.type === "MATCH_COMPLETED");
   after(async () => {
     try {
       if (analytics.length) await store.recordAnalytics(analytics);
-      if (completed && state.match?.result) await store.archiveMatch(summarize(state));
+      if (shutCompleted && (state as ShutServerState).match?.result) await store.archiveMatch(summarize(state as ShutServerState));
     } catch (err) {
       console.error("side effects failed", err);
     }
   });
 }
 
-function summarize(state: ServerRoomState): MatchSummary {
+function summarize(state: ShutServerState): MatchSummary {
   const match = state.match!;
   return {
     matchId: match.id,
@@ -64,9 +64,7 @@ function summarize(state: ServerRoomState): MatchSummary {
     code: state.code,
     number: match.number,
     settings: match.settings,
-    players: state.players
-      .filter((p) => match.playerIds.includes(p.id))
-      .map(({ id, nickname, avatar, color, isBot }) => ({ id, nickname, avatar, color, isBot })),
+    players: state.players.filter((p) => match.playerIds.includes(p.id)).map(({ id, nickname, avatar, color, isBot }) => ({ id, nickname, avatar, color, isBot })),
     stats: match.stats,
     history: match.history,
     result: match.result!,
@@ -77,13 +75,15 @@ function summarize(state: ServerRoomState): MatchSummary {
 
 export async function createRoomForCaller(
   caller: Caller & { guestId: string },
-  input: { nickname: string; avatar: string; color?: PlayerColor | null; settings?: Partial<GameSettings> },
+  input: { game?: GameId; nickname: string; avatar: string; color?: PlayerColor | null; settings?: Record<string, unknown> },
 ) {
   const store = getStore();
+  const game: GameId = input.game ?? "shut10";
   for (let attempt = 0; attempt < 8; attempt++) {
     const code = generateRoomCode((n) => randomInt(n));
     const now = Date.now();
-    const created = createRoom(
+    const created = createForGame(
+      game,
       { roomId: randomUUID(), code, settings: input.settings, nickname: input.nickname, avatar: input.avatar, color: input.color, guestId: caller.guestId, userId: caller.userId },
       { now, rng: secureRandom, newId: randomUUID, guestId: caller.guestId, userId: caller.userId, devTools: devToolsEnabled(), isAdmin: false },
     );
@@ -91,14 +91,14 @@ export async function createRoomForCaller(
     if (res === "code_taken") continue;
     await store.touchPresence(created.state.roomId, { [created.hostId]: now });
     sideEffects(created.state, created.events);
-    return { code, playerId: created.hostId, state: toPublicState(created.state), version: created.state.version };
+    return { code, game, playerId: created.hostId, state: toPublic(created.state), version: created.state.version };
   }
   throw new GameError("SERVER_ERROR", { reason: "code_generation" });
 }
 
 export interface CommandOutcome {
   ok: boolean;
-  events: GameEvent[];
+  events: AnyEvent[];
   version: number;
   me: string | null;
   data: Record<string, unknown>;
@@ -106,20 +106,23 @@ export interface CommandOutcome {
   duplicate?: boolean;
 }
 
-export async function runCommand(rawCode: string, caller: Caller, command: Command, commandId?: string): Promise<CommandOutcome> {
+/** `rawCommand` is validated against the room's own game before it reaches an engine. */
+export async function runCommand(rawCode: string, caller: Caller, rawCommand: unknown, commandId?: string): Promise<CommandOutcome> {
   const code = codeOrThrow(rawCode);
   const store = getStore();
   const devTools = devToolsEnabled();
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const state = await store.loadRoomByCode(code);
     if (!state) throw new GameError("ROOM_NOT_FOUND");
+    const command = parseCommand(gameOf(state), rawCommand);
+    if (!command) throw new GameError("INVALID_COMMAND");
     const now = Date.now();
     const presence = await store.getPresence(state.roomId);
-    const actorId = caller.guestId ? findPlayerIdByGuest(state, caller.guestId) : null;
+    const actorId = caller.guestId ? findPlayerByGuest(state, caller.guestId) : null;
     // Any authenticated request from a seated player is proof of life.
     if (actorId && command.type !== "LEAVE") presence[actorId] = now;
 
-    const result = executeCommand(
+    const result = execute(
       state,
       command,
       { now, rng: secureRandom, newId: randomUUID, actorId, guestId: caller.guestId, userId: caller.userId, presence, devTools, isAdmin: !!caller.isAdmin },
@@ -136,35 +139,27 @@ export async function runCommand(rawCode: string, caller: Caller, command: Comma
     }
     if (Object.keys(touches).length) await store.touchPresence(state.roomId, touches);
 
-    const me = caller.guestId ? findPlayerIdByGuest(result.state, caller.guestId) : null;
-    if (!result.ok) {
-      return { ok: false, events: result.events, version: result.state.version, me, data: {}, error: result.error };
-    }
-    return { ok: true, events: result.events, version: result.state.version, me, data: result.data, duplicate: result.duplicate };
+    const me = caller.guestId ? findPlayerByGuest(result.state, caller.guestId) : null;
+    if (!result.ok) return { ok: false, events: result.events, version: result.state.version, me, data: {}, error: result.error };
+    return { ok: true, events: result.events, version: result.state.version, me, data: result.data ?? {}, duplicate: result.duplicate };
   }
   throw new GameError("CONFLICT");
 }
 
-export interface RoomView {
-  state: RoomState;
-  me: string | null;
-  spectator: boolean;
-}
-
-function canView(state: ServerRoomState, caller: Caller): { me: string | null; spectator: boolean } | null {
-  const me = caller.guestId ? findPlayerIdByGuest(state, caller.guestId) : null;
+function canView(state: AnyServerState, caller: Caller): { me: string | null; spectator: boolean } | null {
+  const me = caller.guestId ? findPlayerByGuest(state, caller.guestId) : null;
   if (me) return { me, spectator: false };
   if (caller.isAdmin) return { me: null, spectator: true };
   if (caller.guestId && state.private.spectators.includes(caller.guestId)) return { me: null, spectator: true };
   return null;
 }
 
-export async function getRoomView(rawCode: string, caller: Caller): Promise<RoomView> {
+export async function getRoomView(rawCode: string, caller: Caller) {
   const state = await getStore().loadRoomByCode(codeOrThrow(rawCode));
   if (!state) throw new GameError("ROOM_NOT_FOUND");
   const access = canView(state, caller);
   if (!access) throw new GameError("NOT_A_PLAYER");
-  return { state: toPublicState(state), ...access };
+  return { state: toPublic(state), game: gameOf(state), personal: personalView(state, access.me), ...access };
 }
 
 export async function getEventsSince(rawCode: string, caller: Caller, since: number) {
@@ -174,13 +169,14 @@ export async function getEventsSince(rawCode: string, caller: Caller, since: num
   const access = canView(state, caller);
   if (!access) throw new GameError("NOT_A_PLAYER");
   if (since >= state.version) return { events: [], version: state.version };
-  if (state.version - since > MAX_EVENTS_DELTA) return { reset: toPublicState(state), version: state.version, me: access.me };
+  if (state.version - since > MAX_EVENTS_DELTA) return { reset: toPublic(state), personal: personalView(state, access.me), version: state.version, me: access.me };
   const events = await store.eventsSince(state.roomId, since, MAX_EVENTS_DELTA);
   return { events, version: state.version };
 }
 
 export interface RoomPreview {
   code: string;
+  game: GameId;
   phase: string;
   gameMode: string;
   maxPlayers: number;
@@ -197,12 +193,13 @@ export async function getRoomPreview(rawCode: string, caller: Caller): Promise<R
   const active = state.players.filter((p) => p.connection !== "left");
   return {
     code: state.code,
+    game: gameOf(state),
     phase: state.phase,
-    gameMode: state.settings.gameMode,
+    gameMode: gameModeOf(state),
     maxPlayers: state.settings.maxPlayers,
     players: active.map((p) => ({ nickname: p.nickname, avatar: p.avatar, color: p.color, isHost: p.id === state.hostId, isBot: p.isBot })),
     takenColors: active.map((p) => p.color),
-    isMember: !!(caller.guestId && findPlayerIdByGuest(state, caller.guestId)),
+    isMember: !!(caller.guestId && findPlayerByGuest(state, caller.guestId)),
     spectatorsAllowed: state.settings.spectators,
     full: active.length >= state.settings.maxPlayers,
   };

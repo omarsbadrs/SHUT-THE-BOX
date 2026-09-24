@@ -1,7 +1,7 @@
 import { isAdmin } from "@/lib/server/admin";
 import { api, gameError, json, readJson } from "@/lib/server/http";
 import { allow } from "@/lib/server/rate-limit";
-import { asCommand, commandRequestSchema } from "@/lib/server/schemas";
+import { commandRequestSchema } from "@/lib/server/schemas";
 import { runCommand } from "@/lib/server/service";
 import { ensureIdentity } from "@/lib/server/session";
 
@@ -21,7 +21,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/co
     const { command, commandId } = parsed.data;
     const bucket = command.type === "TICK" ? "heartbeat" : command.type === "JOIN" ? "join" : "command";
     if (!(await allow(bucket, identity.guestId))) return gameError("RATE_LIMITED");
-    const outcome = await runCommand(code, { guestId: identity.guestId, isAdmin: await isAdmin() }, asCommand(command), commandId);
+    const outcome = await runCommand(code, { guestId: identity.guestId, isAdmin: await isAdmin() }, command, commandId);
     return json({ ...outcome, token: command.type === "JOIN" ? identity.token : undefined }, outcome.ok ? 200 : 400);
   });
 }

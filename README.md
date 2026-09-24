@@ -1,8 +1,52 @@
-# SHUT10 — Roll. Think. Shut.
+# Games Hub — SHUT10 & Hangman
 
-A mobile-first, server-authoritative multiplayer **Shut the Box** party game for 2–4 phones
-(plus solo practice). Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind v4 ·
-Motion · Supabase Postgres + Realtime · Vercel · installable PWA · English + Arabic (RTL).
+A mobile-first, server-authoritative multiplayer **games hub** for 2–4 phones (plus solo
+practice), with two games:
+
+- **SHUT10**: Shut the Box (Face-Off, Classic, Race and Tournament modes).
+- **Hangman**: a chalkboard game with Word master and Race modes, in English and Arabic.
+
+Stack: Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind v4 · Motion ·
+Supabase Postgres + Realtime · Vercel · installable PWA · English + Arabic (RTL).
+
+Both games share rooms, codes, invites, sessions, presence and reconnection, the atomic
+event-sourced commit pipeline, and Realtime. Each game has its own pure rules engine
+(`src/game-engine` for SHUT10, `src/games/hangman` for Hangman). `src/lib/server/games.ts`
+routes each room's commands to its engine.
+
+## Hangman
+
+- **Word master**: players take turns as word master (1–3 times each). The master types a
+  secret word (or picks a random one). Everyone else guesses letters in seat order on one
+  shared chalkboard.
+  - A correct letter scores +1 per occurrence, and the guesser keeps the turn.
+  - A miss draws the next body part and passes the turn.
+  - Solving the whole word scores +3, plus the number of letters still hidden.
+  - If the guessers are hanged, the master scores +5.
+- **Race**: everyone gets the same random word on their own private board. Solvers score
+  3/2/1/1 in finishing order. An optional time limit applies.
+- **Settings**: word language (English / Arabic), category (animals, countries, food,
+  sports, jobs, home, nature, or mixed), lives (6 classic / 9 easy), guess timer, and bots
+  (easy / normal / hard; hard narrows built-in words by the revealed pattern).
+- **Arabic**: one key reveals every alef/hamza form (أ إ آ ٱ → ا, ى/ئ → ي, ؤ → و).
+  Tashkeel is ignored, and whole-word guesses accept ه for ة.
+- **Secrecy**: the event log is readable by browsers, so the word never appears in it
+  before the round ends. The master receives their own word privately. In Race, public
+  events carry progress counts only; each player's board comes back privately in the
+  command response and in `GET /state` (`personal`). Unit and E2E tests check that
+  guessers never receive the word.
+- **Look**: a chalkboard with a wooden gallows. Each wrong guess draws the next part as an
+  animated chalk stroke with a puff of dust. Hanged: the figure sways with ✕ eyes. Saved:
+  the rope snaps and the figure drops and cheers.
+- **Routes**: `/hangman/create`, `/hangman/practice`. Rooms use the same `/room/CODE` and
+  `/join/CODE` as SHUT10.
+- **Database**: no extra migration. Hangman state lives in `rooms.state` and its events in
+  `game_events`. Lobby events share SHUT10's shapes, so `room_players` is projected for
+  both games; game events are prefixed `HM_`.
+
+---
+
+# SHUT10 — Roll. Think. Shut.
 
 ---
 

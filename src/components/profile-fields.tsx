@@ -34,6 +34,7 @@ export function ProfileFields({
           maxLength={16}
           autoComplete="nickname"
           placeholder={t("nicknamePlaceholder")}
+          aria-label={t("nickname")}
           onChange={(e) => setNickname(e.target.value)}
           data-testid="nickname"
           enterKeyHint="done"

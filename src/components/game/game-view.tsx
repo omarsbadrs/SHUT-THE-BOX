@@ -62,7 +62,7 @@ export function GameView({ room }: { room: RoomHandle }) {
   const { t, n } = useI18n();
   const router = useRouter();
   const prefs = usePrefs();
-  const state = room.state!;
+  const state = room.state as RoomState; // RoomClient only renders this view for SHUT10 rooms
   const me = room.me;
   const match = state.match!;
   const round = match.round;
@@ -106,7 +106,7 @@ export function GameView({ room }: { room: RoomHandle }) {
   useEffect(
     () =>
       room.subscribe((e, after) => {
-        const p = getPlayer(after, "playerId" in e ? (e.playerId as string | null) : null);
+        const p = getPlayer(after as RoomState, "playerId" in e ? (e.playerId as string | null) : null);
         switch (e.type) {
           case "DICE_ROLLED":
             if (e.playerId === me) setRollingLocal(false);

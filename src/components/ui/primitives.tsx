@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useId, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 type Variant = "gold" | "green" | "blue" | "red" | "ghost" | "dark";
 
@@ -142,13 +142,20 @@ export function Segmented<T extends string | number>({
   );
 }
 
+/**
+ * A labelled group. Not a <label>: wrapping button groups in a label would
+ * give every label word to the first button's accessible name.
+ */
 export function Field({ label, children, hint }: { label: ReactNode; children: ReactNode; hint?: ReactNode }) {
+  const id = useId();
   return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-bold tracking-wider text-white/60 uppercase">{label}</span>
+    <div role="group" aria-labelledby={id} className="block space-y-1.5">
+      <span id={id} className="block text-xs font-bold tracking-wider text-white/60 uppercase">
+        {label}
+      </span>
       {children}
       {hint && <span className="block text-xs text-white/50">{hint}</span>}
-    </label>
+    </div>
   );
 }
 

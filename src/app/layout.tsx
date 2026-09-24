@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Baloo_Bhaijaan_2 } from "next/font/google";
+import { Aref_Ruqaa, Baloo_Bhaijaan_2, Caveat_Brush } from "next/font/google";
 import { cookies } from "next/headers";
 import { ServiceWorker } from "@/components/service-worker";
 import { I18nProvider } from "@/lib/i18n/context";
@@ -13,11 +13,15 @@ const baloo = Baloo_Bhaijaan_2({
   display: "swap",
 });
 
+// Chalk handwriting for Hangman: Latin brush + Arabic Ruqaa fallback.
+const chalkLatin = Caveat_Brush({ subsets: ["latin"], weight: "400", variable: "--font-chalk-latin", display: "swap" });
+const chalkArabic = Aref_Ruqaa({ subsets: ["arabic"], weight: ["400", "700"], variable: "--font-chalk-arabic", display: "swap" });
+
 export const metadata: Metadata = {
-  title: "SHUT10 — Roll. Think. Shut.",
-  description: "A multiplayer Shut the Box party game for 2–4 phones.",
-  applicationName: "SHUT10",
-  appleWebApp: { capable: true, title: "SHUT10", statusBarStyle: "black-translucent" },
+  title: "Games Hub — Shut the Box & Hangman",
+  description: "Multiplayer party games for 2–4 phones: Shut the Box and Hangman.",
+  applicationName: "Games Hub",
+  appleWebApp: { capable: true, title: "Games Hub", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: { icon: "/icons/192", apple: "/icons/180" },
 };
@@ -34,7 +38,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const lang: Lang = (await cookies()).get(LANG_COOKIE)?.value === "ar" ? "ar" : "en";
   return (
-    <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} className={baloo.variable}>
+    <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} className={`${baloo.variable} ${chalkLatin.variable} ${chalkArabic.variable}`}>
       <body className="antialiased">
         <I18nProvider initialLang={lang}>{children}</I18nProvider>
         <ServiceWorker />
