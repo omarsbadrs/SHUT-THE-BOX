@@ -27,7 +27,7 @@ export function ProfileFields({
 }) {
   const { t } = useI18n();
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 grid-cols-1 gap-5">
       <Field label={t("nickname")}>
         <TextInput
           value={nickname}
@@ -55,7 +55,7 @@ export function ProfileFields({
         </div>
       </Field>
       <Field label={t("colorPreference")}>
-        <div className="grid grid-cols-5 gap-2">
+        <div className={`grid gap-2 ${allowAny ? "grid-cols-5" : "grid-cols-4"}`}>
           {allowAny && (
             <button type="button" onClick={() => setColor(null)} aria-pressed={color === null} className={`h-14 rounded-2xl text-xs font-extrabold ${color === null ? "bg-white/20 ring-2 ring-white" : "bg-white/5"}`}>
               {t("colorAny")}

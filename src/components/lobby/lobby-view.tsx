@@ -196,7 +196,7 @@ export function LobbyView({ room }: { room: RoomHandle }) {
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t("editSettings")}>
         {editing && (
-          <div className="grid gap-4 pb-6">
+          <div className="grid min-w-0 grid-cols-1 gap-4 pb-6">
             <SettingsForm value={editing} onChange={setEditing} />
             <div className="grid grid-cols-2 gap-2">
               <GameButton size="md" variant="dark" onClick={() => setEditing(null)}>

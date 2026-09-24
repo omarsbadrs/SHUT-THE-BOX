@@ -48,23 +48,25 @@ export function SettingsForm({ value, onChange }: { value: GameSettings; onChang
   const timerOptions = TIMERS.map((s) => ({ value: s, label: s === 0 ? t("noTimer") : t("seconds", { n: s }) }));
 
   return (
-    <div className="grid gap-4" data-testid="settings-form">
+    <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="settings-form">
       <Field label={t("gameMode")} hint={t(`modeDesc_${value.gameMode}`)}>
         <Segmented<GameMode>
           value={value.gameMode}
           onChange={(m) => set({ gameMode: m, ...MODE_PRESETS[m] })}
           options={(["faceoff", "classic", "race", "tournament"] as const).map((m) => ({ value: m, label: t(`mode_${m}`) }))}
           testId="mode"
+          cols="grid-cols-2 sm:grid-cols-4"
         />
       </Field>
       <Field label={t("players")}>
-        <Segmented<2 | 3 | 4> value={value.maxPlayers} onChange={(v) => set({ maxPlayers: v })} options={[2, 3, 4].map((v) => ({ value: v as 2 | 3 | 4, label: `${v}` }))} />
+        <Segmented<2 | 3 | 4> value={value.maxPlayers} onChange={(v) => set({ maxPlayers: v })} options={[2, 3, 4].map((v) => ({ value: v as 2 | 3 | 4, label: `${v}` }))} cols="grid-cols-3" />
       </Field>
       <Field label={t("rounds")}>
         <Segmented<FormatKey>
           value={fk}
           onChange={setFormat}
           testId="format"
+          cols="grid-cols-4"
           options={[
             { value: "single", label: t("format_single") },
             { value: "bo3", label: t("format_best_of", { n: 3 }) },
@@ -95,11 +97,12 @@ export function SettingsForm({ value, onChange }: { value: GameSettings; onChang
           value={value.scoringMode}
           onChange={(v) => set({ scoringMode: v })}
           options={(["round_wins", "match_points", "cumulative_low"] as const).map((v) => ({ value: v, label: t(`scoring_${v}`) }))}
+          cols="grid-cols-3"
         />
       </Field>
       <Toggle checked={value.doubleExtraTurn} onChange={(v) => set({ doubleExtraTurn: v })} label={t("doublesExtra")} testId="doubles-toggle" />
       <Field label={t("hints")}>
-        <Segmented value={value.hints} onChange={(v) => set({ hints: v })} options={(["off", "limited", "on", "all"] as const).map((v) => ({ value: v, label: t(`hints_${v}`) }))} />
+        <Segmented value={value.hints} onChange={(v) => set({ hints: v })} options={(["off", "limited", "on", "all"] as const).map((v) => ({ value: v, label: t(`hints_${v}`) }))} cols="grid-cols-4" />
       </Field>
       <Toggle checked={value.spectators} onChange={(v) => set({ spectators: v })} label={t("spectators")} />
 
@@ -107,25 +110,25 @@ export function SettingsForm({ value, onChange }: { value: GameSettings; onChang
         {advanced ? "▾" : "▸"} {t("advanced")}
       </button>
       {advanced && (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Field label={t("rollTimer")}>
-            <Segmented value={value.rollTimer} onChange={(v) => set({ rollTimer: v })} options={timerOptions} />
+            <Segmented value={value.rollTimer} onChange={(v) => set({ rollTimer: v })} options={timerOptions} cols="grid-cols-5" />
           </Field>
           <Field label={t("moveTimer")}>
-            <Segmented value={value.moveTimer} onChange={(v) => set({ moveTimer: v })} options={timerOptions} />
+            <Segmented value={value.moveTimer} onChange={(v) => set({ moveTimer: v })} options={timerOptions} cols="grid-cols-5" />
           </Field>
           <Toggle checked={value.oneDieEndgame} onChange={(v) => set({ oneDieEndgame: v })} label={t("oneDie")} />
           {value.oneDieEndgame && (
-            <Segmented value={value.oneDieThreshold} onChange={(v) => set({ oneDieThreshold: v })} options={[6, 7, 8].map((v) => ({ value: v, label: t("oneDieThreshold", { n: v }) }))} />
+            <Segmented value={value.oneDieThreshold} onChange={(v) => set({ oneDieThreshold: v })} options={[6, 7, 8].map((v) => ({ value: v, label: t("oneDieThreshold", { n: v }) }))} cols="grid-cols-3" />
           )}
           <Field label={t("disconnectRule")}>
-            <Segmented value={value.disconnectRule} onChange={(v) => set({ disconnectRule: v })} options={(["wait", "skip", "block"] as const).map((v) => ({ value: v, label: t(`rule_${v}`) }))} />
+            <Segmented value={value.disconnectRule} onChange={(v) => set({ disconnectRule: v })} options={(["wait", "skip", "block"] as const).map((v) => ({ value: v, label: t(`rule_${v}`) }))} cols="grid-cols-3" />
           </Field>
           <Field label={t("tieBreak")}>
-            <Segmented value={value.tieBreak} onChange={(v) => set({ tieBreak: v })} options={(["tiles", "tiles_roll", "shared"] as const).map((v) => ({ value: v, label: t(`tie_${v}`) }))} />
+            <Segmented value={value.tieBreak} onChange={(v) => set({ tieBreak: v })} options={(["tiles", "tiles_roll", "shared"] as const).map((v) => ({ value: v, label: t(`tie_${v}`) }))} cols="grid-cols-3" />
           </Field>
           <Field label={t("starter")}>
-            <Segmented value={value.starterRule} onChange={(v) => set({ starterRule: v })} options={(["rotate", "random"] as const).map((v) => ({ value: v, label: t(`starter_${v}`) }))} />
+            <Segmented value={value.starterRule} onChange={(v) => set({ starterRule: v })} options={(["rotate", "random"] as const).map((v) => ({ value: v, label: t(`starter_${v}`) }))} cols="grid-cols-2" />
           </Field>
         </div>
       )}

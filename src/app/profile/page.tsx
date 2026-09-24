@@ -56,7 +56,7 @@ export default function ProfilePage() {
 
   return (
     <PageShell title={t("profileTitle")}>
-      <div className="grid gap-6 pb-10">
+      <div className="grid min-w-0 grid-cols-1 gap-6 pb-10">
         <ProfileFields
           nickname={prefs.nickname}
           setNickname={(v) => setPrefs({ nickname: v })}

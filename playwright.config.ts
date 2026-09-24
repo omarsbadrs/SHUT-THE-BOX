@@ -24,6 +24,7 @@ export default defineConfig({
     url: `http://localhost:${PORT}/api/config`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { SHUT10_DEV_TOOLS: "1", NODE_ENV: "production" },
+    // In-memory store: tests never touch the real Supabase database from .env.local.
+    env: { SHUT10_DEV_TOOLS: "1", SHUT10_STORE: "memory", NODE_ENV: "production" },
   },
 });

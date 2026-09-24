@@ -114,21 +114,24 @@ export function Segmented<T extends string | number>({
   options,
   onChange,
   testId,
+  cols,
 }: {
   value: T;
   options: Array<{ value: T; label: ReactNode }>;
   onChange: (v: T) => void;
   testId?: string;
+  /** Tailwind grid-cols classes for a fixed grid (e.g. "grid-cols-4"); default wraps freely. */
+  cols?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5 rounded-2xl bg-black/25 p-1.5" data-testid={testId}>
+    <div className={`${cols ? `grid ${cols}` : "flex flex-wrap"} gap-1.5 rounded-2xl bg-black/25 p-1.5`} data-testid={testId}>
       {options.map((o) => (
         <button
           type="button"
           key={String(o.value)}
           onClick={() => onChange(o.value)}
           aria-pressed={o.value === value}
-          className={`min-w-0 flex-1 rounded-xl px-2.5 py-2 text-sm font-bold whitespace-nowrap transition ${
+          className={`min-w-0 rounded-xl px-2 py-2 text-sm leading-tight font-bold transition ${cols ? "" : "flex-auto"} ${
             o.value === value ? "bg-[#ffcf4a] text-[#2a1a00] shadow" : "text-white/75 hover:bg-white/5"
           }`}
         >

@@ -47,7 +47,7 @@ export default function CreatePage() {
   return (
     <PageShell title={t("playWithFriends")}>
       <Toast message={toast.message} />
-      <div className="grid gap-6 pb-32">
+      <div className="grid min-w-0 grid-cols-1 gap-6 pb-32">
         <ProfileFields nickname={nickname} setNickname={setNickname} avatar={avatar} setAvatar={setAvatar} color={color} setColor={setColor} allowAny={false} />
         <div className="glass rounded-3xl p-4">
           <div className="mb-3 text-sm font-extrabold tracking-wider text-white/70 uppercase">{t("gameOptions")}</div>

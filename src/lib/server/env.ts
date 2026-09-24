@@ -23,6 +23,8 @@ export type StoreMode = "supabase" | "memory" | "unconfigured";
  * the Playwright suite) the in-memory store + SSE provide the same semantics.
  */
 export function storeMode(): StoreMode {
+  // Local test runs force the in-memory store so they never write to the real database.
+  if (process.env.SHUT10_STORE === "memory" && !process.env.VERCEL) return "memory";
   if (env.supabaseUrl && env.supabaseSecretKey) return "supabase";
   if (process.env.VERCEL && process.env.SHUT10_ALLOW_MEMORY_STORE !== "1") return "unconfigured";
   return "memory";
