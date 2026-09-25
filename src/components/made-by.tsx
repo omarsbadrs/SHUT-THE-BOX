@@ -15,7 +15,7 @@ function LinkedInIcon() {
   );
 }
 
-/** "Games HUB · Made by Omar Badr" with website + LinkedIn links. `compact` is the one-line hub footer. */
+/** "Games HUB · Developed by Omar Badr" with website + LinkedIn links. `compact` is the one-line hub footer. */
 export function MadeBy({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
   const link = "inline-flex items-center gap-1 rounded-full font-bold transition hover:text-[#ffcf4a]";

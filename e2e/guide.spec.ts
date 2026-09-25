@@ -40,7 +40,7 @@ test("beginners see each game's guide once before creating it; the hub opens it 
 test("the hub and credits page credit Omar Badr with his website and LinkedIn", async ({ page }) => {
   for (const path of ["/", "/credits"]) {
     await page.goto(path);
-    await expect(page.getByTestId("made-by")).toContainText("Omar Badr");
+    await expect(page.getByTestId("made-by")).toContainText("Developed by Omar Badr");
     await expect(page.getByTestId("author-website")).toHaveAttribute("href", "https://omar-badr.digital/");
     await expect(page.getByTestId("author-linkedin")).toHaveAttribute("href", "https://www.linkedin.com/in/omarsbadrss");
     await expect(page.getByTestId("author-website")).toHaveAttribute("target", "_blank");

@@ -398,7 +398,7 @@ const en = {
   gw_flipHint: "Tap cards to flip them down",
   tab_rounds: "Rounds",
   guide_title: "How to play",
-  madeBy: "Made by",
+  madeBy: "Developed by",
   authorName: "Omar Badr",
   authorWebsite: "Website",
   credits: "Credits",
