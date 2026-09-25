@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   title: "Games HUB",
   description: "Party games for your phones: Shut the Box, Hangman and Guess Who? (Egyptian edition).",
   applicationName: "Games HUB",
+  authors: [{ name: "Omar Badr", url: "https://omar-badr.digital/" }],
+  creator: "Omar Badr",
   appleWebApp: { capable: true, title: "Games HUB", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: { icon: "/icons/192", apple: "/icons/180" },

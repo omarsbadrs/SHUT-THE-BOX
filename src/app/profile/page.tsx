@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { PlayerColor } from "@/game-engine";
 import { PreferenceToggles } from "@/components/game/menu";
+import { MadeBy } from "@/components/made-by";
 import { PageShell } from "@/components/page-shell";
 import { ProfileFields } from "@/components/profile-fields";
 import { GameButton, TextInput, Toggle } from "@/components/ui/primitives";
@@ -134,6 +135,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </section>
+            <MadeBy />
             <section className="glass rounded-3xl p-4 text-sm">
               <div className="mb-1 font-extrabold">📲 {t("install")}</div>
               <p className="text-white/60">{isIos ? t("installIos") : "Chrome ⋮ → Install app"}</p>

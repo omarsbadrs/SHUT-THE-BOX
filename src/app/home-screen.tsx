@@ -8,6 +8,7 @@ import { GuideButton } from "@/components/guide/guide";
 import type { GuideGame } from "@/components/guide/guides";
 import { Gallows, type GallowsState } from "@/components/hangman/gallows";
 import { Logo } from "@/components/logo";
+import { MadeBy } from "@/components/made-by";
 import { GameLink } from "@/components/ui/primitives";
 import { unlockAudio } from "@/lib/client/feedback";
 import { useI18n } from "@/lib/i18n/context";
@@ -192,8 +193,11 @@ export function HomeScreen() {
         <GameLink href="/join" variant="blue" className="!h-[clamp(44px,7.5dvh,56px)] w-full" testId="home-join">
           {t("joinRoom")}
         </GameLink>
-        <Link href="/credits" className="mt-1.5 block text-[11px] font-bold text-white/40 underline [@media(max-height:600px)]:hidden" data-testid="home-credits">
-          {t("gw_credits")}
+        <div className="mt-1.5">
+          <MadeBy compact />
+        </div>
+        <Link href="/credits" className="mt-0.5 block text-[10px] font-bold text-white/35 underline [@media(max-height:600px)]:hidden" data-testid="home-credits">
+          {t("credits")}
         </Link>
       </div>
     </main>

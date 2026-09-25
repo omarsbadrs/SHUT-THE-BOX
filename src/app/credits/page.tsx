@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import credits from "@/games/guesswho/credits.json";
 import { cardById, cardImage } from "@/games/guesswho";
+import { MadeBy } from "@/components/made-by";
 import { PageShell } from "@/components/page-shell";
 import { GameButton } from "@/components/ui/primitives";
 import { useI18n } from "@/lib/i18n/context";
@@ -24,7 +25,7 @@ export default function CreditsPage() {
   const [perPage, setPerPage] = useState(8);
   const [page, setPage] = useState(0);
   useEffect(() => {
-    const fit = () => setPerPage(Math.max(4, Math.floor((window.innerHeight - 250) / ROW)));
+    const fit = () => setPerPage(Math.max(3, Math.floor((window.innerHeight - 400) / ROW)));
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
@@ -34,7 +35,12 @@ export default function CreditsPage() {
   const shown = list.slice(current * perPage, current * perPage + perPage);
 
   return (
-    <PageShell title={t("gw_credits")}>
+    <PageShell title={t("credits")}>
+      {/* The app itself: made by Omar Badr. */}
+      <div className="mb-2 shrink-0">
+        <MadeBy />
+      </div>
+      <div className="mb-1 shrink-0 text-[11px] font-bold tracking-wider text-white/50 uppercase">{t("photoSources")}</div>
       <p className="mb-2 shrink-0 text-[11px] leading-snug text-white/60">{t("gw_creditsIntro")}</p>
       <ol className="grid min-h-0 flex-1 content-start gap-1 overflow-hidden" data-testid="credits">
         {shown.map((c) => {
