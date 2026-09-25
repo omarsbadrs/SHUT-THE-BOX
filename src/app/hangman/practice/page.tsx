@@ -14,6 +14,7 @@ import {
 } from "./practice-logic";
 import { Gallows, type GallowsState } from "@/components/hangman/gallows";
 import { Keyboard, WordSlots } from "@/components/hangman/word-board";
+import { GuideButton } from "@/components/guide/guide";
 import { PageShell } from "@/components/page-shell";
 import { GameButton, Segmented, Sheet, TextInput } from "@/components/ui/primitives";
 import { haptic, sfx, unlockAudio } from "@/lib/client/feedback";
@@ -140,7 +141,7 @@ export default function HangmanPracticePage() {
   const misses = [...wrongLetters, ...(game?.wrongSolves.filter((w) => w !== "✓") ?? [])];
 
   return (
-    <PageShell title={t("hm_practiceTitle")}>
+    <PageShell title={t("hm_practiceTitle")} right={<GuideButton game="hangman" />}>
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-2 grid shrink-0 grid-cols-4 gap-1.5 text-center" data-testid="hm-solo-stats">
           {[

@@ -9,16 +9,20 @@ export type GuessWhoSection = "game" | "rules";
 
 /** Photo used on each deck's picker tile. */
 export const DECK_COVER: Record<GwCategory, string> = {
-  food: "food/koshary",
   stars: "stars/soad_hosny",
-  music_sport: "music_sport/mohamed_salah",
+  singers: "singers/umm_kulthum",
+  footballers: "footballers/mohamed_salah",
+  food: "food/koshary",
   pharaohs: "pharaohs/tutankhamun",
+  nature: "nature/camel",
+  everyday: "everyday/fanous",
+  icons: "icons/mahfouz",
 };
 
 export function DeckPicker({ value, onChange }: { value: GwCategory; onChange: (c: GwCategory) => void }) {
   const { t } = useI18n();
   return (
-    <div className="grid grid-cols-2 gap-2" data-testid="gw-deck">
+    <div className="grid grid-cols-4 gap-1.5" data-testid="gw-deck">
       {GW_CATEGORIES.map((c) => (
         <button
           key={c}
@@ -26,12 +30,12 @@ export function DeckPicker({ value, onChange }: { value: GwCategory; onChange: (
           onClick={() => onChange(c)}
           aria-pressed={value === c}
           data-testid={`gw-deck-${c}`}
-          className={`relative h-[clamp(52px,11dvh,84px)] overflow-hidden rounded-2xl border-2 text-start transition ${value === c ? "border-[#ffcf4a] shadow-[0_0_18px_-4px_#ffcf4a]" : "border-white/10 opacity-80"}`}
+          className={`relative h-[clamp(58px,12dvh,96px)] overflow-hidden rounded-xl border-2 text-start transition ${value === c ? "border-[#ffcf4a] shadow-[0_0_18px_-4px_#ffcf4a]" : "border-white/10 opacity-80"}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={cardImage(DECK_COVER[c])} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
           <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-          <span className="kufi absolute inset-x-2 bottom-1.5 text-[13px] leading-tight font-bold text-white">{t(`gw_cat_${c}` as MessageKey)}</span>
+          <span className="kufi absolute inset-x-1 bottom-1 text-[10.5px] leading-[1.1] font-bold text-white">{t(`gw_cat_${c}` as MessageKey)}</span>
           {value === c && <span className="absolute end-1.5 top-1.5 rounded-full bg-[#ffcf4a] px-1.5 text-[10px] font-extrabold text-[#2a1a00]">✓</span>}
         </button>
       ))}

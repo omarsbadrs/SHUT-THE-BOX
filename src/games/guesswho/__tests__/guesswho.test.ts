@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import creditsJson from "../credits.json";
 import type { PlayerColor } from "@/game-engine";
 import { lcg } from "@/game-engine/__tests__/harness";
 import {
@@ -7,6 +10,7 @@ import {
   botMove,
   candidatesFor,
   cardById,
+  cardImage,
   createGuessWhoRoom,
   emptyGuessWhoState,
   executeGuessWho,
@@ -112,6 +116,25 @@ describe("guess who decks", () => {
         expect(yes, q.id).toBeLessThan(cards.length);
       }
     }
+  });
+});
+
+describe("guess who photos", () => {
+  it("every card has its image file and a credits entry (author + license + source)", () => {
+    const credits = new Map((creditsJson as Array<{ id: string; author: string; license: string; page: string }>).map((c) => [c.id, c]));
+    for (const cat of GW_CATEGORIES) {
+      for (const card of GW_CARDS[cat]) {
+        expect(existsSync(join(process.cwd(), "public", "guesswho", `${card.id}.webp`)), `${card.id} image`).toBe(true);
+        const c = credits.get(card.id);
+        expect(c && c.author && c.license && c.page.startsWith("https://commons.wikimedia.org/"), `${card.id} credit`).toBeTruthy();
+      }
+    }
+  });
+
+  it("cards saved before the Singers/Footballers split still resolve", () => {
+    expect(cardById("music_sport/umm_kulthum")?.id).toBe("singers/umm_kulthum");
+    expect(cardById("music_sport/mohamed_salah")?.id).toBe("footballers/mohamed_salah");
+    expect(cardImage("music_sport/mohamed_salah")).toBe("/guesswho/footballers/mohamed_salah.webp");
   });
 });
 

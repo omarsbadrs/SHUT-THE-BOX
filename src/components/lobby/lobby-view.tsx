@@ -13,6 +13,8 @@ import { PreferenceToggles } from "../game/menu";
 import { useErrorText, useToast } from "../ui/hooks";
 import { GameButton, Sheet, Toast } from "../ui/primitives";
 import { Wizard, type WizardStep } from "../ui/wizard";
+import { GuideButton } from "../guide/guide";
+import type { GuideGame } from "../guide/guides";
 import { InvitePanel } from "./invite";
 
 /** Seat positions around the table, matching the physical set. */
@@ -90,12 +92,14 @@ export function LobbyView({
   editorSteps,
   devPanel,
   title,
+  guide,
 }: {
   room: RoomHandle;
   summary: ReactNode;
   editorSteps: (draft: Record<string, unknown>, setDraft: (d: Record<string, unknown>) => void) => WizardStep[];
   devPanel?: ReactNode;
   title?: string;
+  guide?: GuideGame;
 }) {
   const { t, n } = useI18n();
   const router = useRouter();
@@ -161,9 +165,12 @@ export function LobbyView({
         <span className="truncate px-2 text-sm font-extrabold tracking-[0.25em] text-white/70" data-testid="lobby-title">
           {title ?? t("lobby")}
         </span>
-        <button type="button" onClick={() => setMenu(true)} className="glass h-10 w-10 shrink-0 rounded-xl" aria-label={t("settings")}>
-          ☰
-        </button>
+        <div className="flex shrink-0 gap-1.5">
+          {guide && <GuideButton game={guide} />}
+          <button type="button" onClick={() => setMenu(true)} className="glass h-10 w-10 shrink-0 rounded-xl" aria-label={t("settings")}>
+            ☰
+          </button>
+        </div>
       </header>
 
       <InvitePanel code={state.code} />

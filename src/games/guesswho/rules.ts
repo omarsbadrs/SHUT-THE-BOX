@@ -29,6 +29,8 @@ export function normalizeGuessWhoSettings(input: Partial<GuessWhoSettings> | und
   const s: GuessWhoSettings = { ...DEFAULT_GUESSWHO_SETTINGS, ...(input ?? {}) };
   s.gameMode = "guesswho_classic";
   s.maxPlayers = 2;
+  // Rooms saved before the split of "Singers & Footballers" keep playing with singers.
+  if ((s.category as string) === "music_sport") s.category = "singers";
   if (!GW_CATEGORIES.includes(s.category)) s.category = "stars";
   if (![16, 20, 24].includes(s.boardSize)) s.boardSize = 24;
   if (![1, 3, 5].includes(s.rounds)) s.rounds = 3;

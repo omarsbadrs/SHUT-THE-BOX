@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DEFAULT_HANGMAN_SETTINGS, type HangmanSettings } from "@/games/hangman";
 import type { PlayerColor } from "@/game-engine";
 import { HangmanSettingsForm } from "@/components/hangman/settings";
+import { GuideButton } from "@/components/guide/guide";
 import { PageShell } from "@/components/page-shell";
 import { ProfileFields } from "@/components/profile-fields";
 import { useErrorText, useToast } from "@/components/ui/hooks";
@@ -45,7 +46,7 @@ export default function HangmanCreatePage() {
   };
 
   return (
-    <PageShell title={`${t("gameHangman")} · ${t("playWithFriends")}`}>
+    <PageShell right={<GuideButton game="hangman" autoOpen />} title={`${t("gameHangman")} · ${t("playWithFriends")}`}>
       <Toast message={toast.message} />
       <Wizard
         busy={busy}

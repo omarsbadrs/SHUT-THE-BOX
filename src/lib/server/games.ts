@@ -127,7 +127,7 @@ export const guessWhoSettingsSchema = z
   .object({
     gameMode: z.literal("guesswho_classic"),
     maxPlayers: z.literal(2),
-    category: z.enum(["food", "stars", "music_sport", "pharaohs"]),
+    category: z.enum(["food", "stars", "singers", "footballers", "pharaohs", "nature", "everyday", "icons"]),
     boardSize: z.union([z.literal(16), z.literal(20), z.literal(24)]),
     rounds: z.union([z.literal(1), z.literal(3), z.literal(5)]),
     turnTimer: z.union([z.literal(0), z.literal(30), z.literal(60), z.literal(90)]),

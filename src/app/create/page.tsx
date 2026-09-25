@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DEFAULT_SETTINGS, type GameSettings, type PlayerColor } from "@/game-engine";
 import { SettingsForm } from "@/components/lobby/settings-form";
+import { GuideButton } from "@/components/guide/guide";
 import { PageShell } from "@/components/page-shell";
 import { ProfileFields } from "@/components/profile-fields";
 import { useErrorText, useToast } from "@/components/ui/hooks";
@@ -43,7 +44,7 @@ export default function CreatePage() {
   };
 
   return (
-    <PageShell title={`${t("gameShut10")} · ${t("playWithFriends")}`}>
+    <PageShell right={<GuideButton game="shut10" autoOpen />} title={`${t("gameShut10")} · ${t("playWithFriends")}`}>
       <Toast message={toast.message} />
       <Wizard
         busy={busy}

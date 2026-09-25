@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DEFAULT_GUESSWHO_SETTINGS, type GuessWhoSettings } from "@/games/guesswho";
 import type { PlayerColor } from "@/game-engine";
 import { GuessWhoSettingsForm } from "@/components/guesswho/settings";
+import { GuideButton } from "@/components/guide/guide";
 import { PageShell } from "@/components/page-shell";
 import { ProfileFields } from "@/components/profile-fields";
 import { useErrorText, useToast } from "@/components/ui/hooks";
@@ -44,7 +45,7 @@ export default function GuessWhoCreatePage() {
   };
 
   return (
-    <PageShell title={`${t("gameGuessWho")} · ${t("playWithFriends")}`}>
+    <PageShell right={<GuideButton game="guesswho" autoOpen />} title={`${t("gameGuessWho")} · ${t("playWithFriends")}`}>
       <Toast message={toast.message} />
       <Wizard
         busy={busy}

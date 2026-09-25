@@ -82,6 +82,7 @@ export function RoomClient({ code }: { code: string }) {
         <LobbyView
           room={room}
           title={t("gameHangman")}
+          guide="hangman"
           summary={<HangmanSettingsSummary settings={state.settings} />}
           editorSteps={(draft, setDraft) =>
             (["game", "rules"] as const).map((section) => ({
@@ -100,6 +101,7 @@ export function RoomClient({ code }: { code: string }) {
         <LobbyView
           room={room}
           title={t("gameGuessWho")}
+          guide="guesswho"
           summary={<GuessWhoSettingsSummary settings={state.settings} />}
           editorSteps={(draft, setDraft) =>
             (["game", "rules"] as const).map((section) => ({
@@ -117,6 +119,7 @@ export function RoomClient({ code }: { code: string }) {
       <LobbyView
         room={room}
         title={t("gameShut10")}
+        guide="shut10"
         summary={<SettingsSummary settings={state.settings} />}
         editorSteps={(draft, setDraft) =>
           (["game", "rules", "more"] as const).map((section) => ({

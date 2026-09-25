@@ -1,0 +1,13 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3100",
+      "localStorage": [
+        { "name": "s10_guide_seen_shut10", "value": "1" },
+        { "name": "s10_guide_seen_hangman", "value": "1" },
+        { "name": "s10_guide_seen_guesswho", "value": "1" }
+      ]
+    }
+  ]
+}

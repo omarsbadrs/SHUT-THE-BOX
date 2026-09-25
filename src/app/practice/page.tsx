@@ -19,6 +19,7 @@ import {
 import { Board } from "@/components/game/board";
 import { Die } from "@/components/game/dice";
 import { ShutBoxCelebration } from "@/components/game/overlays";
+import { GuideButton } from "@/components/guide/guide";
 import { PageShell } from "@/components/page-shell";
 import { GameButton, Sheet, Toggle } from "@/components/ui/primitives";
 import { haptic, sfx, unlockAudio } from "@/lib/client/feedback";
@@ -114,9 +115,12 @@ export default function PracticePage() {
     <PageShell
       title={t("practiceTitle")}
       right={
+        <>
+        <GuideButton game="shut10" />
         <button type="button" onClick={() => setMenu(true)} className="glass h-10 w-10 shrink-0 rounded-xl text-lg" aria-label={t("settings")} data-testid="practice-menu">
           ⚙
         </button>
+        </>
       }
     >
       <div className="mb-2 grid shrink-0 grid-cols-5 gap-1.5 text-center" data-testid="solo-stats">

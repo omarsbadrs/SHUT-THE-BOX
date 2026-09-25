@@ -6,6 +6,7 @@ import type { BotLevel } from "@/game-engine";
 import type { GwBoardSize, GwCategory } from "@/games/guesswho";
 import { DeckPicker } from "@/components/guesswho/settings";
 import { GuessWhoView } from "@/components/guesswho/guesswho-view";
+import { GuideButton } from "@/components/guide/guide";
 import { PageShell } from "@/components/page-shell";
 import { Field, GameButton, Segmented } from "@/components/ui/primitives";
 import { unlockAudio } from "@/lib/client/feedback";
@@ -44,7 +45,7 @@ export default function GuessWhoPracticePage() {
   }
 
   return (
-    <PageShell title={t("gw_practiceTitle")}>
+    <PageShell title={t("gw_practiceTitle")} right={<GuideButton game="guesswho" autoOpen />}>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <Field label={t("gw_category")}>
           <DeckPicker value={category} onChange={setCategory} />

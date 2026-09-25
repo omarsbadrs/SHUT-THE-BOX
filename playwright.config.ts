@@ -18,6 +18,8 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     ...devices["Pixel 7"],
     trace: "retain-on-failure",
+    // Beginner guides auto-open on a first visit; tests start as returning players (guide.spec checks the first visit).
+    storageState: "e2e/storage-state.json",
   },
   webServer: {
     command: `npx next start -p ${PORT}`,

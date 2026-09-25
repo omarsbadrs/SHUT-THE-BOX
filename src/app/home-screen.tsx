@@ -4,6 +4,8 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { cardImage } from "@/games/guesswho";
+import { GuideButton } from "@/components/guide/guide";
+import type { GuideGame } from "@/components/guide/guides";
 import { Gallows, type GallowsState } from "@/components/hangman/gallows";
 import { Logo } from "@/components/logo";
 import { GameLink } from "@/components/ui/primitives";
@@ -53,6 +55,7 @@ function CardFan() {
 }
 
 function GameCard({
+  guide,
   testId,
   frame,
   surface,
@@ -72,12 +75,16 @@ function GameCard({
   primary: ReactNode;
   secondary: ReactNode;
   delay: number;
+  guide: GuideGame;
 }) {
   return (
     <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className={`${frame} shrink-0 rounded-[24px] p-[7px]`} data-testid={testId}>
       <div className={`${surface} flex items-center gap-3 rounded-[18px] p-[clamp(8px,1.6dvh,14px)]`}>
         <div className="min-w-0 flex-1">
-          {title}
+          <div className="flex items-center gap-2">
+            <div className="min-w-0">{title}</div>
+            <GuideButton game={guide} className="!h-7 !min-w-7 !rounded-full !px-0 text-xs" />
+          </div>
           <p className="mt-0.5 text-xs leading-snug font-semibold text-white/75 [@media(max-height:760px)]:hidden">{desc}</p>
           <div className="mt-[clamp(6px,1.2dvh,10px)] grid grid-cols-2 gap-2">
             {primary}
@@ -117,6 +124,7 @@ export function HomeScreen() {
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-[clamp(8px,1.6dvh,14px)] py-2">
         <GameCard
           testId="card-shut10"
+          guide="shut10"
           frame="wood"
           surface="felt"
           delay={0.1}
@@ -140,6 +148,7 @@ export function HomeScreen() {
         />
         <GameCard
           testId="card-hangman"
+          guide="hangman"
           frame="wood"
           surface="chalkboard"
           delay={0.2}
@@ -159,6 +168,7 @@ export function HomeScreen() {
         />
         <GameCard
           testId="card-guesswho"
+          guide="guesswho"
           frame="gold-frame"
           surface="lapis"
           delay={0.3}

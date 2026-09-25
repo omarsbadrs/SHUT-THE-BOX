@@ -139,6 +139,17 @@ for (const vp of PHONES) {
 
     await page.goto("/");
     await check("home");
+    // Every page of every beginner guide fits too.
+    for (const game of ["shut10", "hangman", "guesswho"]) {
+      await page.getByTestId(`guide-open-${game}`).click();
+      for (let i = 0; i < 8; i++) {
+        await check(`guide ${game} p${i + 1}`);
+        if (!(await page.getByTestId("guide-next").isVisible())) break;
+        await page.getByTestId("guide-next").click();
+      }
+      await page.getByTestId("guide-done").click();
+      await expect(page.getByTestId(`guide-${game}`)).toBeHidden();
+    }
     await page.goto("/create");
     await page.getByTestId("nickname").fill("Layout");
     await wizard("create", "create", ["you", "game", "rules", "more"]);
