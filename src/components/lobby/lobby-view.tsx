@@ -93,6 +93,7 @@ export function LobbyView({
   devPanel,
   title,
   guide,
+  seatColors = COLORS,
 }: {
   room: RoomHandle;
   summary: ReactNode;
@@ -100,6 +101,8 @@ export function LobbyView({
   devPanel?: ReactNode;
   title?: string;
   guide?: GuideGame;
+  /** Seats this game uses (Connect 4: red & yellow side by side). */
+  seatColors?: readonly PlayerColor[];
 }) {
   const { t, n } = useI18n();
   const router = useRouter();
@@ -180,9 +183,13 @@ export function LobbyView({
       <div className="wood flex h-full max-h-[340px] min-h-0 rounded-[26px] p-2">
         <div
           className="felt grid min-h-0 w-full flex-1 gap-1.5 rounded-[20px] p-2"
-          style={{ gridTemplateAreas: `"top top top" "left center right" "bottom bottom bottom"`, gridTemplateColumns: "1fr 0.9fr 1fr", gridTemplateRows: "minmax(0,0.8fr) minmax(0,1.2fr) minmax(0,0.8fr)" }}
+          style={
+            seatColors.length === 2
+              ? { gridTemplateAreas: `"left center right"`, gridTemplateColumns: "1fr 0.8fr 1fr", gridTemplateRows: "minmax(0,1fr)" }
+              : { gridTemplateAreas: `"top top top" "left center right" "bottom bottom bottom"`, gridTemplateColumns: "1fr 0.9fr 1fr", gridTemplateRows: "minmax(0,0.8fr) minmax(0,1.2fr) minmax(0,0.8fr)" }
+          }
         >
-          {COLORS.map((c) => {
+          {seatColors.map((c) => {
             const p = players.find((x) => x.color === c);
             return <Seat key={c} color={c} player={p} isHost={!!p && p.id === state.hostId} isMe={!!p && p.id === me} presence={!!p && room.presence.has(p.id)} onTap={() => tapSeat(c)} />;
           })}

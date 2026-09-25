@@ -14,10 +14,11 @@ import { unlockAudio } from "@/lib/client/feedback";
 import { setPrefs, usePrefs } from "@/lib/client/prefs";
 import { useI18n } from "@/lib/i18n/context";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
+import { C4_COLORS } from "@/games/connect4";
 
 interface Preview {
   code: string;
-  game: "shut10" | "hangman" | "guesswho";
+  game: "shut10" | "hangman" | "guesswho" | "connect4";
   phase: string;
   gameMode: string;
   maxPlayers: number;
@@ -101,7 +102,7 @@ export function JoinClient({ code }: { code: string }) {
           </div>
           <div className="min-w-0 flex-1 text-end text-xs leading-tight font-bold text-white/70">
             <div className="truncate" data-testid="join-game">
-              {t(preview.game === "hangman" ? "gameHangman" : preview.game === "guesswho" ? "gameGuessWho" : "gameShut10")}
+              {t(preview.game === "hangman" ? "gameHangman" : preview.game === "guesswho" ? "gameGuessWho" : preview.game === "connect4" ? "gameConnect4" : "gameShut10")}
             </div>
             <div className="truncate">
               {t(`mode_${preview.gameMode}` as MessageKey)} · {t("playersCount", { n: n(preview.players.length), max: n(preview.maxPlayers) })}
@@ -140,6 +141,7 @@ export function JoinClient({ code }: { code: string }) {
               color={color}
               setColor={setColor}
               takenColors={preview.takenColors}
+              colors={preview.game === "connect4" ? C4_COLORS : undefined}
             />
           </div>
           <div className="shrink-0 pt-2 pb-2">

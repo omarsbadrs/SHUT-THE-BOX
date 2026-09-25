@@ -6,7 +6,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { GameButton, Sheet } from "../ui/primitives";
 import { GUIDES, type GuideGame } from "./guides";
 
-const TITLE_KEY = { shut10: "gameShut10", hangman: "gameHangman", guesswho: "gameGuessWho" } as const;
+const TITLE_KEY = { shut10: "gameShut10", hangman: "gameHangman", guesswho: "gameGuessWho", connect4: "gameConnect4" } as const;
 const seenKey = (game: GuideGame) => `s10_guide_seen_${game}`;
 
 /** Paged beginner guide: one short page at a time, so it never scrolls. */

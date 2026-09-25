@@ -120,7 +120,7 @@ function RoundPanel({
   const order = match.playerIds.slice().sort((a, b) => (match.scores[b]?.points ?? 0) - (match.scores[a]?.points ?? 0));
   return (
     <motion.div className="fixed inset-0 z-30 flex items-end justify-center bg-black/60 sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} data-testid="hm-round-results">
-      <motion.div initial={{ y: 80 }} animate={{ y: 0 }} className="safe-bottom w-full max-w-[520px] rounded-t-[28px] border-t border-white/10 bg-[#10231a] px-4 pt-5 sm:rounded-[28px]">
+      <motion.div initial={{ y: 80 }} animate={{ y: 0 }} className="safe-bottom w-full max-w-[520px] rounded-t-[28px] border-t border-white/10 bg-[var(--panel)] px-4 pt-5 sm:rounded-[28px]">
         <div className="chalkboard rounded-2xl px-3 py-4 text-center">
           <div className="text-xs font-bold tracking-[0.25em] text-white/50">{t("hm_wordWas")}</div>
           <div className="chalk mt-1 text-4xl" data-testid="hm-reveal" dir={match.settings.language === "ar" ? "rtl" : "ltr"}>

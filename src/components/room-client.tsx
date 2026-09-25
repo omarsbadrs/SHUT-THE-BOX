@@ -5,11 +5,14 @@ import { useEffect } from "react";
 import type { GameSettings } from "@/game-engine";
 import type { HangmanSettings } from "@/games/hangman";
 import type { GuessWhoSettings } from "@/games/guesswho";
-import { isGuessWho, isHangman } from "@/lib/client/games";
+import { C4_COLORS, type Connect4Settings } from "@/games/connect4";
+import { isConnect4, isGuessWho, isHangman } from "@/lib/client/games";
 import { useRoom } from "@/lib/client/use-room";
 import { useI18n } from "@/lib/i18n/context";
 import { GameView } from "./game/game-view";
 import { DevPanel } from "./game/menu";
+import { Connect4View } from "./connect4/connect4-view";
+import { Connect4SettingsForm, Connect4SettingsSummary } from "./connect4/settings";
 import { GuessWhoView } from "./guesswho/guesswho-view";
 import { GuessWhoSettingsForm, GuessWhoSettingsSummary } from "./guesswho/settings";
 import { HangmanView } from "./hangman/hangman-view";
@@ -50,7 +53,7 @@ export function RoomClient({ code }: { code: string }) {
 
   // Keep the address bar meaningful without remounting: /room/CODE in the lobby, /game/MATCH during play.
   // Hangman and Guess Who rooms always stay on /room/CODE (only SHUT10 uses /game/…).
-  const matchId = state && !isHangman(state) && !isGuessWho(state) && state.phase !== "ROOM_LOBBY" && state.phase !== "FINISHED" ? state.match?.id : null;
+  const matchId = state && !isHangman(state) && !isGuessWho(state) && !isConnect4(state) && state.phase !== "ROOM_LOBBY" && state.phase !== "FINISHED" ? state.match?.id : null;
   useEffect(() => {
     if (!state) return;
     const target = matchId ? `/game/${matchId}` : `/room/${state.code}`;
@@ -113,6 +116,26 @@ export function RoomClient({ code }: { code: string }) {
         />
       );
     return <GuessWhoView room={room} />;
+  }
+  if (isConnect4(state)) {
+    if (state.phase === "ROOM_LOBBY")
+      return (
+        <LobbyView
+          room={room}
+          title={t("gameConnect4")}
+          guide="connect4"
+          seatColors={C4_COLORS}
+          summary={<Connect4SettingsSummary settings={state.settings} />}
+          editorSteps={(draft, setDraft) =>
+            (["game", "rules"] as const).map((section) => ({
+              key: section,
+              title: t(`step_${section}`),
+              content: <Connect4SettingsForm section={section} value={draft as unknown as Connect4Settings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />,
+            }))
+          }
+        />
+      );
+    return <Connect4View room={room} />;
   }
   if (state.phase === "ROOM_LOBBY")
     return (

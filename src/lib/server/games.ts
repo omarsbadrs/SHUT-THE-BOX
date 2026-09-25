@@ -31,6 +31,15 @@ import {
   type GwCommand,
   type GwEvent,
 } from "@/games/guesswho";
+import {
+  createConnect4Room,
+  executeConnect4,
+  findC4PlayerByGuest,
+  toPublicConnect4,
+  type C4Command,
+  type C4Event,
+  type Connect4ServerState,
+} from "@/games/connect4";
 import { commandSchema as shutCommandSchema, settingsSchema as shutSettingsSchema } from "./schemas";
 
 /**
@@ -38,15 +47,15 @@ import { commandSchema as shutCommandSchema, settingsSchema as shutSettingsSchem
  * realtime and presence are shared; rules live in each game's engine.
  */
 
-export type GameId = "shut10" | "hangman" | "guesswho";
-export type AnyServerState = ServerRoomState | HangmanServerState | GuessWhoServerState;
-export type AnyEvent = GameEvent | HmEvent | GwEvent;
-export type AnyServerCommand = ShutCommand | HmCommand | GwCommand;
+export type GameId = "shut10" | "hangman" | "guesswho" | "connect4";
+export type AnyServerState = ServerRoomState | HangmanServerState | GuessWhoServerState | Connect4ServerState;
+export type AnyEvent = GameEvent | HmEvent | GwEvent | C4Event;
+export type AnyServerCommand = ShutCommand | HmCommand | GwCommand | C4Command;
 
 /** SHUT10 rooms predate the `game` field, so a missing value means SHUT10. */
 export function gameOf(state: object): GameId {
   const g = (state as { game?: string }).game;
-  return g === "hangman" || g === "guesswho" ? g : "shut10";
+  return g === "hangman" || g === "guesswho" || g === "connect4" ? g : "shut10";
 }
 
 export interface ExecOutcome {
@@ -150,10 +159,33 @@ const guessWhoCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("DEV_GW_FORCE_SECRETS"), cards: z.array(cardId).max(2) }),
 ]);
 
+// ───────────────── Connect 4 wire schema ─────────────────
+
+export const connect4SettingsSchema = z
+  .object({
+    gameMode: z.enum(["c4_classic", "c4_popout"]),
+    maxPlayers: z.literal(2),
+    boardSize: z.enum(["7x6", "8x7", "9x7"]),
+    connect: z.union([z.literal(4), z.literal(5)]),
+    rounds: z.union([z.literal(1), z.literal(3), z.literal(5)]),
+    turnTimer: z.union([z.literal(0), z.literal(10), z.literal(20), z.literal(30)]),
+    starter: z.enum(["alternate", "loser", "random"]),
+    spectators: z.boolean(),
+    disconnectGraceSeconds: z.number().int().min(20).max(300),
+  })
+  .partial();
+
+const connect4CommandSchema = z.discriminatedUnion("type", [
+  ...lobbyCommands,
+  z.object({ type: z.literal("UPDATE_SETTINGS"), settings: connect4SettingsSchema }),
+  z.object({ type: z.literal("C4_DROP"), column: z.number().int().min(0).max(8) }),
+  z.object({ type: z.literal("C4_POP"), column: z.number().int().min(0).max(8) }),
+]);
+
 // ───────────────── Registry ─────────────────
 
 export function parseCommand(game: GameId, raw: unknown): AnyServerCommand | null {
-  const schema = game === "hangman" ? hangmanCommandSchema : game === "guesswho" ? guessWhoCommandSchema : shutCommandSchema;
+  const schema = game === "hangman" ? hangmanCommandSchema : game === "guesswho" ? guessWhoCommandSchema : game === "connect4" ? connect4CommandSchema : shutCommandSchema;
   const parsed = schema.safeParse(raw);
   return parsed.success ? (parsed.data as AnyServerCommand) : null;
 }
@@ -164,6 +196,8 @@ export function execute(state: AnyServerState, command: AnyServerCommand, ctx: C
       return executeHangman(state as HangmanServerState, command as HmCommand, ctx, commandId);
     case "guesswho":
       return executeGuessWho(state as GuessWhoServerState, command as GwCommand, ctx, commandId);
+    case "connect4":
+      return executeConnect4(state as Connect4ServerState, command as C4Command, ctx, commandId);
     default:
       return executeShut(state as ServerRoomState, command as ShutCommand, ctx, commandId);
   }
@@ -175,6 +209,8 @@ export function findPlayerByGuest(state: AnyServerState, guestId: string): strin
       return findHmPlayerByGuest(state as HangmanServerState, guestId);
     case "guesswho":
       return findGwPlayerByGuest(state as GuessWhoServerState, guestId);
+    case "connect4":
+      return findC4PlayerByGuest(state as Connect4ServerState, guestId);
     default:
       return findShutPlayer(state as ServerRoomState, guestId);
   }
@@ -186,6 +222,8 @@ export function toPublic(state: AnyServerState) {
       return toPublicHangman(state as HangmanServerState);
     case "guesswho":
       return toPublicGuessWho(state as GuessWhoServerState);
+    case "connect4":
+      return toPublicConnect4(state as Connect4ServerState);
     default:
       return shutPublic(state as ServerRoomState);
   }
@@ -207,6 +245,10 @@ export function createForGame(game: GameId, params: CreateParams, ctx: Omit<Comm
   if (game === "hangman") {
     const settings = hangmanSettingsSchema.safeParse(params.settings ?? {});
     return createHangmanRoom({ ...params, settings: settings.success ? settings.data : undefined }, ctx);
+  }
+  if (game === "connect4") {
+    const settings = connect4SettingsSchema.safeParse(params.settings ?? {});
+    return createConnect4Room({ ...params, settings: settings.success ? settings.data : undefined }, ctx);
   }
   if (game === "guesswho") {
     const settings = guessWhoSettingsSchema.safeParse(params.settings ?? {});

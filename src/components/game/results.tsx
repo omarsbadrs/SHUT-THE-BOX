@@ -63,7 +63,7 @@ export function RoundResultsPanel({
       <motion.div
         initial={{ y: 80 }}
         animate={{ y: 0 }}
-        className="safe-bottom w-full max-w-[520px] rounded-t-[28px] border-t border-white/10 bg-[#10231a] px-4 pt-5 sm:rounded-[28px]"
+        className="safe-bottom w-full max-w-[520px] rounded-t-[28px] border-t border-white/10 bg-[var(--panel)] px-4 pt-5 sm:rounded-[28px]"
       >
         <div className="text-center">
           <div className="text-xs font-bold tracking-[0.25em] text-white/50">{t("roundN", { n: result.roundNumber })}</div>

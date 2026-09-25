@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FullScreenMessage, Loading } from "@/components/room-client";
 import { MatchResultsView } from "@/components/game/results";
+import { Connect4MatchResultsView } from "@/components/connect4/results";
 import { GuessWhoMatchResultsView } from "@/components/guesswho/results";
 import { HangmanMatchResultsView } from "@/components/hangman/results";
 import { apiFetch } from "@/lib/client/api";
@@ -48,6 +49,21 @@ export function ResultsClient({ matchId }: { matchId: string }) {
         settings={summary.settings}
         isHost={false}
         onNewRoom={() => router.push("/hangman/create")}
+        onExit={() => router.push("/")}
+        shareUrl={shareUrl}
+      />
+    );
+  if (summary.game === "connect4")
+    return (
+      <Connect4MatchResultsView
+        players={summary.players}
+        playerIds={summary.playerIds}
+        scores={summary.scores}
+        result={summary.result}
+        history={summary.history}
+        settings={summary.settings}
+        isHost={false}
+        onNewRoom={() => router.push("/connect4/create")}
         onExit={() => router.push("/")}
         shareUrl={shareUrl}
       />

@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useId, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 type Variant = "gold" | "green" | "blue" | "red" | "ghost" | "dark";
 
@@ -68,6 +68,13 @@ export function GameLink({
 }
 
 export function Sheet({ open, onClose, children, title }: { open: boolean; onClose: () => void; children: ReactNode; title?: ReactNode }) {
+  // Escape closes the sheet (keyboards / desktop).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
   return (
     <AnimatePresence>
       {open && (
@@ -75,7 +82,7 @@ export function Sheet({ open, onClose, children, title }: { open: boolean; onClo
           <button type="button" aria-label="Close" className="absolute inset-0 bg-black/60" onClick={onClose} />
           <motion.div
             role="dialog"
-            className="safe-bottom relative flex max-h-[94dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-[28px] border-t border-white/10 bg-[#10231a] px-4 pt-2 shadow-2xl"
+            className="safe-bottom relative flex max-h-[94dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-[28px] border-t border-white/10 bg-[var(--panel)] px-4 pt-2 shadow-2xl"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

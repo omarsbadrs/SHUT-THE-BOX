@@ -21,7 +21,8 @@ import {
 import { getStore } from "./store";
 import type { HangmanServerState } from "@/games/hangman";
 import type { GuessWhoServerState } from "@/games/guesswho";
-import type { GuessWhoMatchSummary, HangmanMatchSummary, MatchSummary } from "./store/types";
+import type { Connect4ServerState } from "@/games/connect4";
+import type { Connect4MatchSummary, GuessWhoMatchSummary, HangmanMatchSummary, MatchSummary } from "./store/types";
 
 /**
  * Server-authoritative command pipeline (any game):
@@ -50,12 +51,14 @@ function sideEffects(state: AnyServerState, events: AnyEvent[]) {
   const shutCompleted = gameOf(state) === "shut10" && events.some((e) => e.type === "MATCH_COMPLETED");
   const hmCompleted = gameOf(state) === "hangman" && events.some((e) => e.type === "HM_MATCH_ENDED");
   const gwCompleted = gameOf(state) === "guesswho" && events.some((e) => e.type === "GW_MATCH_ENDED");
+  const c4Completed = gameOf(state) === "connect4" && events.some((e) => e.type === "C4_MATCH_ENDED");
   after(async () => {
     try {
       if (analytics.length) await store.recordAnalytics(analytics);
       if (shutCompleted && (state as ShutServerState).match?.result) await store.archiveMatch(summarize(state as ShutServerState));
       if (hmCompleted && (state as HangmanServerState).match?.result) await store.archiveMatch(summarizeHangman(state as HangmanServerState));
       if (gwCompleted && (state as GuessWhoServerState).match?.result) await store.archiveMatch(summarizeGuessWho(state as GuessWhoServerState));
+      if (c4Completed && (state as Connect4ServerState).match?.result) await store.archiveMatch(summarizeConnect4(state as Connect4ServerState));
     } catch (err) {
       console.error("side effects failed", err);
     }
@@ -90,6 +93,25 @@ function summarizeGuessWho(state: GuessWhoServerState): GuessWhoMatchSummary {
     number: match.number,
     settings: match.settings,
     players: state.players.filter((p) => match.playerIds.includes(p.id)).map(({ id, nickname, avatar, color, isBot }) => ({ id, nickname, avatar, color, isBot })),
+    scores: match.scores,
+    history: match.history,
+    result: match.result!,
+    startedAt: match.startedAt,
+    endedAt: match.result!.endedAt,
+  };
+}
+
+function summarizeConnect4(state: Connect4ServerState): Connect4MatchSummary {
+  const match = state.match!;
+  return {
+    game: "connect4",
+    matchId: match.id,
+    roomId: state.roomId,
+    code: state.code,
+    number: match.number,
+    settings: match.settings,
+    players: state.players.filter((p) => match.playerIds.includes(p.id)).map(({ id, nickname, avatar, color, isBot }) => ({ id, nickname, avatar, color, isBot })),
+    playerIds: match.playerIds,
     scores: match.scores,
     history: match.history,
     result: match.result!,

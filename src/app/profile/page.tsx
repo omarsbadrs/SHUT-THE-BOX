@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { PlayerColor } from "@/game-engine";
 import { PreferenceToggles } from "@/components/game/menu";
 import { MadeBy } from "@/components/made-by";
+import { ThemePicker } from "@/components/theme-picker";
 import { PageShell } from "@/components/page-shell";
 import { ProfileFields } from "@/components/profile-fields";
 import { GameButton, TextInput, Toggle } from "@/components/ui/primitives";
@@ -86,7 +87,8 @@ export default function ProfilePage() {
         )}
         {tab === "settings" && (
           <div className="grid gap-2">
-            <PreferenceToggles />
+            <ThemePicker />
+            <PreferenceToggles theme={false} />
             <Toggle checked={prefs.trainer} onChange={(v) => setPrefs({ trainer: v })} label={`🎓 ${t("trainer")}`} />
           </div>
         )}

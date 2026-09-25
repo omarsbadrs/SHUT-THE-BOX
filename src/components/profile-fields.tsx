@@ -15,6 +15,7 @@ export function ProfileFields({
   setColor,
   takenColors = [],
   allowAny = true,
+  colors = COLORS,
 }: {
   nickname: string;
   setNickname: (v: string) => void;
@@ -24,6 +25,8 @@ export function ProfileFields({
   setColor: (v: PlayerColor | null) => void;
   takenColors?: PlayerColor[];
   allowAny?: boolean;
+  /** Colours this game offers (Connect 4: red & yellow). */
+  colors?: readonly PlayerColor[];
 }) {
   const { t } = useI18n();
   return (
@@ -58,13 +61,13 @@ export function ProfileFields({
         </div>
       </Field>
       <Field label={t("colorPreference")}>
-        <div className={`grid gap-2 ${allowAny ? "grid-cols-5" : "grid-cols-4"}`}>
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${colors.length + (allowAny ? 1 : 0)}, minmax(0, 1fr))` }}>
           {allowAny && (
             <button type="button" onClick={() => setColor(null)} aria-pressed={color === null} className={`h-12 rounded-2xl text-xs font-extrabold ${color === null ? "bg-white/20 ring-2 ring-white" : "bg-white/5"}`}>
               {t("colorAny")}
             </button>
           )}
-          {COLORS.map((c) => {
+          {colors.map((c) => {
             const taken = takenColors.includes(c);
             const s = PLAYER_STYLE[c];
             return (

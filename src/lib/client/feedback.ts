@@ -120,6 +120,22 @@ export const sfx = {
     noise(0.06, { freq: 500, gain: 0.45 });
     tone(yes ? 740 : 196, 0.18, { type: yes ? "triangle" : "sawtooth", gain: yes ? 0.14 : 0.07, delay: 0.04, slide: yes ? 1.2 : 0.7 });
   },
+  /** Connect 4 disc landing: a plastic clack after it falls `rows` cells, then a small bounce. */
+  discDrop(rows = 3) {
+    const fall = 0.12 + rows * 0.045;
+    noise(0.045, { delay: fall, freq: 1800, q: 1.2, gain: 0.5 });
+    tone(320, 0.06, { type: "triangle", gain: 0.14, delay: fall, slide: 0.7 });
+    noise(0.03, { delay: fall + 0.13, freq: 2400, q: 1.5, gain: 0.18 });
+  },
+  /** PopOut: the bottom disc slides out and the column drops. */
+  discPop() {
+    noise(0.08, { freq: 900, q: 0.8, gain: 0.35 });
+    tone(220, 0.14, { type: "triangle", gain: 0.12, slide: 0.6, delay: 0.05 });
+  },
+  /** The slider opens and every disc rattles out of the board. */
+  release(count = 20) {
+    for (let i = 0; i < Math.min(count, 28); i++) noise(0.035, { delay: 0.05 + i * 0.035 + Math.random() * 0.03, freq: 1400 + Math.random() * 1600, q: 1.3, gain: 0.25 });
+  },
   /** A card flipping down on the board. */
   cardFlip(delay = 0) {
     noise(0.05, { delay, freq: 2400, q: 1.5, gain: 0.22 });

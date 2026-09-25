@@ -21,6 +21,7 @@ import { Die } from "@/components/game/dice";
 import { ShutBoxCelebration } from "@/components/game/overlays";
 import { GuideButton } from "@/components/guide/guide";
 import { PageShell } from "@/components/page-shell";
+import { ThemePicker } from "@/components/theme-picker";
 import { GameButton, Sheet, Toggle } from "@/components/ui/primitives";
 import { haptic, sfx, unlockAudio } from "@/lib/client/feedback";
 import { setPrefs, usePrefs } from "@/lib/client/prefs";
@@ -246,6 +247,7 @@ export default function PracticePage() {
         <div className="grid gap-2 pb-6">
           <Toggle checked={prefs.trainer} onChange={(v) => setPrefs({ trainer: v })} label={`🎓 ${t("trainer")}`} testId="trainer-toggle" />
           <Toggle checked={oneDieRule} onChange={setOneDieRule} label={t("oneDie")} />
+          <ThemePicker compact />
         </div>
       </Sheet>
 

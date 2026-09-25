@@ -107,7 +107,9 @@ async function setupRooms(page: Page) {
   await cmd(page, open, { type: "ADD_BOT", level: "easy" });
   const gw = (await call("/api/rooms", { game: "guesswho", nickname: "Layout", avatar: "🦊", color: "blue", settings: { category: "pharaohs", boardSize: 24 } })).code as string;
   await cmd(page, gw, { type: "ADD_BOT", level: "easy" });
-  return { shut, hm, open, gw };
+  const c4 = (await call("/api/rooms", { game: "connect4", nickname: "Layout", avatar: "🦊", color: "red", settings: { rounds: 3, gameMode: "c4_popout", boardSize: "9x7", turnTimer: 30 } })).code as string;
+  await cmd(page, c4, { type: "ADD_BOT", level: "easy" });
+  return { shut, hm, open, gw, c4 };
 }
 
 for (const vp of PHONES) {
@@ -140,7 +142,7 @@ for (const vp of PHONES) {
     await page.goto("/");
     await check("home");
     // Every page of every beginner guide fits too.
-    for (const game of ["shut10", "hangman", "guesswho"]) {
+    for (const game of ["shut10", "hangman", "guesswho", "connect4"]) {
       await page.getByTestId(`guide-open-${game}`).click();
       for (let i = 0; i < 8; i++) {
         await check(`guide ${game} p${i + 1}`);
@@ -159,6 +161,13 @@ for (const vp of PHONES) {
     await page.goto("/guesswho/create");
     await page.getByTestId("nickname").fill("Layout");
     await wizard("guesswho-create", "create", ["you", "game", "rules"]);
+    await page.goto("/connect4/create");
+    await page.getByTestId("nickname").fill("Layout");
+    await wizard("connect4-create", "create", ["you", "game", "rules"]);
+    await page.goto("/");
+    await page.getByTestId("theme-button").click();
+    await check("theme sheet");
+    await page.keyboard.press("Escape");
     await page.goto("/join");
     await check("join");
     await guest.goto(`/join/${rooms.open}`);
@@ -272,6 +281,35 @@ for (const vp of PHONES) {
     await check("guesswho practice game");
     await page.goto("/credits");
     await check("credits");
+
+    // Connect 4: lobby, editor, big PopOut board mid-game, round card, results; practice
+    await page.goto(`/room/${rooms.c4}`);
+    await expect(page.getByTestId("lobby")).toBeVisible();
+    await check("connect4 lobby");
+    await page.getByTestId("edit-settings").click();
+    await wizard("connect4 lobby editor", "editor", ["game", "rules"]);
+    await page.keyboard.press("Escape");
+    await page.goto(`/room/${rooms.c4}`);
+    await page.getByTestId("start-game").click();
+    await expect(page.getByTestId("c4-board")).toBeVisible({ timeout: 15_000 });
+    for (const col of [4, 3, 5]) {
+      await expect(page.getByTestId(`c4-col-${col}`)).toBeEnabled({ timeout: 10_000 });
+      await page.getByTestId(`c4-col-${col}`).click();
+    }
+    await expect(page.getByTestId("c4-col-4")).toBeEnabled({ timeout: 10_000 });
+    await check("connect4 board 9x7 popout");
+    await cmd(page, rooms.c4, { type: "END_MATCH" });
+    await expect(page.getByTestId("c4-round-results")).toBeVisible({ timeout: 10_000 });
+    await check("connect4 round card");
+    await page.getByTestId("c4-continue").click();
+    await expect(page.getByTestId("c4-match-results")).toBeVisible();
+    await check("connect4 results");
+    await page.goto("/connect4/practice");
+    await check("connect4 practice setup");
+    await page.getByTestId("c4-solo-start").click();
+    await expect(page.getByTestId("c4-board")).toBeVisible();
+    await page.waitForTimeout(3500);
+    await check("connect4 practice game");
 
     // Arabic (RTL) create page too.
     await context.addCookies([{ name: "s10_lang", value: "ar", url: test.info().project.use.baseURL as string }]);

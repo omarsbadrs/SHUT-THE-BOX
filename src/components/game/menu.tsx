@@ -7,14 +7,16 @@ import { setPrefs, usePrefs } from "@/lib/client/prefs";
 import { useI18n } from "@/lib/i18n/context";
 import { GameButton, Sheet, Toggle } from "../ui/primitives";
 import { ColorIcon } from "./theme";
+import { ThemePicker } from "../theme-picker";
 
-export function PreferenceToggles() {
+export function PreferenceToggles({ theme = true }: { theme?: boolean }) {
   const { t, lang, setLang } = useI18n();
   const prefs = usePrefs();
   return (
     <div className="grid gap-2">
       <Toggle checked={prefs.sound} onChange={(v) => setPrefs({ sound: v })} label={`🔊 ${t("sound")}`} />
       <Toggle checked={prefs.haptics} onChange={(v) => setPrefs({ haptics: v })} label={`📳 ${t("haptics")}`} />
+      {theme && <ThemePicker compact />}
       <button
         type="button"
         onClick={() => setLang(lang === "en" ? "ar" : "en")}

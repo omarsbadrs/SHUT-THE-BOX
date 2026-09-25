@@ -1,10 +1,11 @@
 import type { GameEvent, MatchPlayerStats, MatchResult, RoomPlayer, RoundResult, GameSettings, ServerRoomState as ShutServerState } from "@/game-engine";
 import type { HangmanServerState, HangmanSettings, HmEvent, HmMatchResult, HmRoundResult, HmScore } from "@/games/hangman";
 import type { GuessWhoServerState, GuessWhoSettings, GwEvent, GwMatchResult, GwRoundResult, GwScore } from "@/games/guesswho";
+import type { C4Event, C4MatchResult, C4RoundResult, C4Score, Connect4ServerState, Connect4Settings } from "@/games/connect4";
 
 /** Any game's server state; stores only rely on roomId / code / version. */
-export type ServerRoomState = ShutServerState | HangmanServerState | GuessWhoServerState;
-export type StoredEvent = GameEvent | HmEvent | GwEvent;
+export type ServerRoomState = ShutServerState | HangmanServerState | GuessWhoServerState | Connect4ServerState;
+export type StoredEvent = GameEvent | HmEvent | GwEvent | C4Event;
 
 type SummaryPlayer = Pick<RoomPlayer, "id" | "nickname" | "avatar" | "color" | "isBot">;
 
@@ -56,7 +57,25 @@ export interface GuessWhoMatchSummary {
   endedAt: number;
 }
 
-export type AnyMatchSummary = MatchSummary | HangmanMatchSummary | GuessWhoMatchSummary;
+/** Immutable record of a finished Connect 4 duel. */
+export interface Connect4MatchSummary {
+  game: "connect4";
+  matchId: string;
+  roomId: string;
+  code: string;
+  number: number;
+  settings: Connect4Settings;
+  players: SummaryPlayer[];
+  /** Match player order: snapshots use "0"/"1" for these. */
+  playerIds: string[];
+  scores: Record<string, C4Score>;
+  history: C4RoundResult[];
+  result: C4MatchResult;
+  startedAt: number;
+  endedAt: number;
+}
+
+export type AnyMatchSummary = MatchSummary | HangmanMatchSummary | GuessWhoMatchSummary | Connect4MatchSummary;
 
 export interface AnalyticsRow {
   name: string;

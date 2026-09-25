@@ -2,7 +2,7 @@ import type { Lang } from "@/lib/i18n/dictionaries";
 
 /** Beginner guides: short pages that each fit one phone screen (no scrolling). */
 
-export type GuideGame = "shut10" | "hangman" | "guesswho";
+export type GuideGame = "shut10" | "hangman" | "guesswho" | "connect4";
 
 export interface GuideItem {
   term?: string;
@@ -319,6 +319,108 @@ export const GUIDES: Record<GuideGame, Record<Lang, GuidePage[]>> = {
           { text: "الأسئلة المكتوبة حلوة للحاجات اللي الصورة مش بتبينها («مثّل في مسلسل رمضان؟»)." },
           { text: "العب «ضد الروبوت» عشان تتمرن — الروبوت بيرد على الأسئلة الجاهزة بس." },
           { text: "نسيت إجابة؟ افتح 📜 تشوف كل الأسئلة اللي فاتت." },
+        ],
+      },
+    ],
+  },
+  connect4: {
+    en: [
+      {
+        icon: "🎯",
+        title: "The goal",
+        items: [
+          { text: "Two players, red and yellow, take turns dropping discs into the board." },
+          { text: "A disc falls to the lowest empty hole of the column you pick." },
+          { text: "First to line up 4 of their discs in a row wins the round — across, up and down, or diagonally." },
+          { text: "If the board fills up with no line, the round is a draw." },
+        ],
+      },
+      {
+        icon: "👆",
+        title: "Your turn",
+        items: [
+          { term: "Drop", text: "Tap any column. On a computer, hover to see where the disc will land." },
+          { term: "Winning line", text: "When someone connects, the winning discs light up and are joined by a golden line." },
+          { term: "New round", text: "The slider opens and every disc drops out of the board — just like the real one." },
+        ],
+      },
+      {
+        icon: "🎲",
+        title: "Game modes",
+        items: [
+          { term: "Classic", text: "Only drops. The original game." },
+          { term: "PopOut", text: "On your turn you may pop one of YOUR discs out of the bottom instead of dropping; everything above slides down. If a pop makes a line for both players, the one who popped wins." },
+        ],
+      },
+      {
+        icon: "⚙️",
+        title: "Settings",
+        items: [
+          { term: "Board size", text: "7 × 6 (classic), 8 × 7 or 9 × 7 for longer games." },
+          { term: "Discs in a row", text: "Connect 4, or 5 for a harder challenge on bigger boards." },
+          { term: "Match", text: "One round, or best of 3 / 5. Draws are replayed." },
+          { term: "Turn timer", text: "10, 20 or 30 seconds — if time runs out a move is played for you. Or no timer." },
+          { term: "Who opens", text: "Take turns, the loser of the last round, or random." },
+        ],
+      },
+      {
+        icon: "💡",
+        title: "Tips",
+        items: [
+          { text: "The middle column is the strongest — it's part of the most possible lines." },
+          { text: "Always check if your rival has three in a row with a free spot. Block it!" },
+          { text: "Try to make two threats at once — they can only block one." },
+          { text: "Practise VS BOT: easy, normal or hard." },
+        ],
+      },
+    ],
+    ar: [
+      {
+        icon: "🎯",
+        title: "الهدف",
+        items: [
+          { text: "لاعبين، أحمر وأصفر، كل واحد بدوره بينزّل قرص في اللوحة." },
+          { text: "القرص بيقع لآخر خانة فاضية تحت في العمود اللي تختاره." },
+          { text: "أول واحد يعمل ٤ أقراص في صف يكسب الجولة — بالعرض أو بالطول أو بالمايل." },
+          { text: "لو اللوحة اتملت ومفيش صف، الجولة تعادل." },
+        ],
+      },
+      {
+        icon: "👆",
+        title: "دورك",
+        items: [
+          { term: "نزّل", text: "دوس على أي عمود. على الكمبيوتر، حرّك الماوس عشان تشوف القرص هيقع فين." },
+          { term: "صف الفوز", text: "لما حد يكسب، أقراص الفوز بتنوّر ويتوصلوا بخط دهبي." },
+          { term: "جولة جديدة", text: "الشريحة بتتفتح وكل الأقراص بتقع من تحت — زي اللعبة الحقيقية بالظبط." },
+        ],
+      },
+      {
+        icon: "🎲",
+        title: "أنماط اللعب",
+        items: [
+          { term: "كلاسيكي", text: "تنزيل بس. اللعبة الأصلية." },
+          { term: "بوب أوت", text: "في دورك تقدر تطلّع قرص من أقراصك انت من تحت بدل ما تنزّل؛ واللي فوقه كله بينزل. لو التطليع عمل صف للاتنين، اللي طلّع هو اللي يكسب." },
+        ],
+      },
+      {
+        icon: "⚙️",
+        title: "الإعدادات",
+        items: [
+          { term: "حجم اللوحة", text: "٧ × ٦ (الكلاسيكي)، أو ٨ × ٧ أو ٩ × ٧ للعب أطول." },
+          { term: "عدد الأقراص في الصف", text: "٤، أو ٥ لتحدي أصعب على اللوحات الكبيرة." },
+          { term: "المباراة", text: "جولة واحدة، أو الأفضل من ٣ / ٥. التعادل بيتعاد." },
+          { term: "وقت الدور", text: "١٠ أو ٢٠ أو ٣٠ ثانية — لو الوقت خلص بتتلعب حركة بدالك. أو من غير وقت." },
+          { term: "مين يبدأ", text: "بالتبادل، أو اللي خسر الجولة اللي فاتت، أو عشوائي." },
+        ],
+      },
+      {
+        icon: "💡",
+        title: "نصايح",
+        items: [
+          { text: "العمود اللي في النص هو الأقوى — داخل في أكتر صفوف ممكنة." },
+          { text: "دايمًا بص لو منافسك عنده ٣ في صف وجنبهم خانة فاضية. اقفلها!" },
+          { text: "حاول تعمل تهديدين في نفس الوقت — هيقدر يقفل واحد بس." },
+          { text: "اتمرن «ضد الروبوت»: سهل أو عادي أو صعب." },
         ],
       },
     ],

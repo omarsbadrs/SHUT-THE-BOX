@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { THEME_COOKIE, themeById, themeVars } from "@/lib/shared/themes";
 import { Aref_Ruqaa, Baloo_Bhaijaan_2, Caveat_Brush, Reem_Kufi } from "next/font/google";
 import { cookies } from "next/headers";
 import { ServiceWorker } from "@/components/service-worker";
@@ -30,19 +31,17 @@ export const metadata: Metadata = {
   icons: { icon: "/icons/192", apple: "/icons/180" },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#07120d",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
-};
+export async function generateViewport(): Promise<Viewport> {
+  const theme = themeById((await cookies()).get(THEME_COOKIE)?.value);
+  return { themeColor: theme.night, width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false, viewportFit: "cover" };
+}
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const lang: Lang = (await cookies()).get(LANG_COOKIE)?.value === "ar" ? "ar" : "en";
+  const jar = await cookies();
+  const lang: Lang = jar.get(LANG_COOKIE)?.value === "ar" ? "ar" : "en";
+  const theme = themeById(jar.get(THEME_COOKIE)?.value);
   return (
-    <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} className={`${baloo.variable} ${chalkLatin.variable} ${chalkArabic.variable} ${kufi.variable}`}>
+    <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} data-theme={theme.id} style={themeVars(theme) as React.CSSProperties} className={`${baloo.variable} ${chalkLatin.variable} ${chalkArabic.variable} ${kufi.variable}`}>
       <body className="antialiased">
         <I18nProvider initialLang={lang}>{children}</I18nProvider>
         <ServiceWorker />
