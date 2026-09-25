@@ -1,5 +1,6 @@
-/* SHUT10 service worker: installable + resilient app shell. Never caches API traffic. */
-const VERSION = "shut10-v1";
+/* Games HUB service worker: installable + resilient app shell. Never caches API traffic. */
+// Bump on icon / shell changes so installed apps pick them up.
+const VERSION = "gameshub-v2";
 const SHELL = ["/", "/practice", "/join", "/manifest.webmanifest", "/icons/192", "/icons/512"];
 
 self.addEventListener("install", (event) => {

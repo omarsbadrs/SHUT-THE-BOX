@@ -20,7 +20,8 @@ import {
 } from "./games";
 import { getStore } from "./store";
 import type { HangmanServerState } from "@/games/hangman";
-import type { HangmanMatchSummary, MatchSummary } from "./store/types";
+import type { GuessWhoServerState } from "@/games/guesswho";
+import type { GuessWhoMatchSummary, HangmanMatchSummary, MatchSummary } from "./store/types";
 
 /**
  * Server-authoritative command pipeline (any game):
@@ -48,11 +49,13 @@ function sideEffects(state: AnyServerState, events: AnyEvent[]) {
   const analytics = analyticsFor(state, events);
   const shutCompleted = gameOf(state) === "shut10" && events.some((e) => e.type === "MATCH_COMPLETED");
   const hmCompleted = gameOf(state) === "hangman" && events.some((e) => e.type === "HM_MATCH_ENDED");
+  const gwCompleted = gameOf(state) === "guesswho" && events.some((e) => e.type === "GW_MATCH_ENDED");
   after(async () => {
     try {
       if (analytics.length) await store.recordAnalytics(analytics);
       if (shutCompleted && (state as ShutServerState).match?.result) await store.archiveMatch(summarize(state as ShutServerState));
       if (hmCompleted && (state as HangmanServerState).match?.result) await store.archiveMatch(summarizeHangman(state as HangmanServerState));
+      if (gwCompleted && (state as GuessWhoServerState).match?.result) await store.archiveMatch(summarizeGuessWho(state as GuessWhoServerState));
     } catch (err) {
       console.error("side effects failed", err);
     }
@@ -63,6 +66,24 @@ function summarizeHangman(state: HangmanServerState): HangmanMatchSummary {
   const match = state.match!;
   return {
     game: "hangman",
+    matchId: match.id,
+    roomId: state.roomId,
+    code: state.code,
+    number: match.number,
+    settings: match.settings,
+    players: state.players.filter((p) => match.playerIds.includes(p.id)).map(({ id, nickname, avatar, color, isBot }) => ({ id, nickname, avatar, color, isBot })),
+    scores: match.scores,
+    history: match.history,
+    result: match.result!,
+    startedAt: match.startedAt,
+    endedAt: match.result!.endedAt,
+  };
+}
+
+function summarizeGuessWho(state: GuessWhoServerState): GuessWhoMatchSummary {
+  const match = state.match!;
+  return {
+    game: "guesswho",
     matchId: match.id,
     roomId: state.roomId,
     code: state.code,

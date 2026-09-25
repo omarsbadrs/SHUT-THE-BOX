@@ -115,6 +115,15 @@ export const sfx = {
   saved() {
     [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, { type: "triangle", gain: 0.14, delay: i * 0.1 }));
   },
+  /** Guess Who answer stamp: bright for YES, low thud for NO. */
+  stamp(yes: boolean) {
+    noise(0.06, { freq: 500, gain: 0.45 });
+    tone(yes ? 740 : 196, 0.18, { type: yes ? "triangle" : "sawtooth", gain: yes ? 0.14 : 0.07, delay: 0.04, slide: yes ? 1.2 : 0.7 });
+  },
+  /** A card flipping down on the board. */
+  cardFlip(delay = 0) {
+    noise(0.05, { delay, freq: 2400, q: 1.5, gain: 0.22 });
+  },
 };
 
 export const haptic = {

@@ -17,7 +17,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 interface Preview {
   code: string;
-  game: "shut10" | "hangman";
+  game: "shut10" | "hangman" | "guesswho";
   phase: string;
   gameMode: string;
   maxPlayers: number;
@@ -101,7 +101,7 @@ export function JoinClient({ code }: { code: string }) {
           </div>
           <div className="min-w-0 flex-1 text-end text-xs leading-tight font-bold text-white/70">
             <div className="truncate" data-testid="join-game">
-              {t(preview.game === "hangman" ? "gameHangman" : "gameShut10")}
+              {t(preview.game === "hangman" ? "gameHangman" : preview.game === "guesswho" ? "gameGuessWho" : "gameShut10")}
             </div>
             <div className="truncate">
               {t(`mode_${preview.gameMode}` as MessageKey)} · {t("playersCount", { n: n(preview.players.length), max: n(preview.maxPlayers) })}

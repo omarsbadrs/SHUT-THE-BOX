@@ -105,12 +105,14 @@ async function setupRooms(page: Page) {
   await cmd(page, hm, { type: "DEV_HM_FORCE_WORD", words: ["كرة القدم"] });
   const open = (await call("/api/rooms", { nickname: "Host With A Long Name", avatar: "🐯", color: "green" })).code as string;
   await cmd(page, open, { type: "ADD_BOT", level: "easy" });
-  return { shut, hm, open };
+  const gw = (await call("/api/rooms", { game: "guesswho", nickname: "Layout", avatar: "🦊", color: "blue", settings: { category: "pharaohs", boardSize: 24 } })).code as string;
+  await cmd(page, gw, { type: "ADD_BOT", level: "easy" });
+  return { shut, hm, open, gw };
 }
 
 for (const vp of PHONES) {
   test(`every screen fits ${vp.name} (${vp.width}x${vp.height}) with no scrolling`, async ({ browser }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
     const context = await browser.newContext({ ...test.info().project.use, viewport: { width: vp.width, height: vp.height } });
     const page = await context.newPage();
     page.setDefaultTimeout(20_000);
@@ -143,6 +145,9 @@ for (const vp of PHONES) {
     await page.goto("/hangman/create");
     await page.getByTestId("nickname").fill("Layout");
     await wizard("hangman-create", "create", ["you", "game", "rules"]);
+    await page.goto("/guesswho/create");
+    await page.getByTestId("nickname").fill("Layout");
+    await wizard("guesswho-create", "create", ["you", "game", "rules"]);
     await page.goto("/join");
     await check("join");
     await guest.goto(`/join/${rooms.open}`);
@@ -228,12 +233,46 @@ for (const vp of PHONES) {
     await expect(page.getByTestId("hm-match-results")).toBeVisible();
     await check("results page (hangman)");
 
+    // Guess Who: lobby, editor, board, ask sheet, results; practice vs bot; credits
+    await page.goto(`/room/${rooms.gw}`);
+    await expect(page.getByTestId("lobby")).toBeVisible();
+    await check("guesswho lobby");
+    await page.getByTestId("edit-settings").click();
+    await wizard("guesswho lobby editor", "editor", ["game", "rules"]);
+    await page.keyboard.press("Escape");
+    await page.goto(`/room/${rooms.gw}`);
+    await page.getByTestId("start-game").click();
+    await expect(page.getByTestId("gw-board")).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(4000); // intro
+    await expect(page.getByTestId("gw-ask")).toBeEnabled({ timeout: 10_000 }); // bot may open: wait for our turn
+    await check("guesswho board");
+    await page.getByTestId("gw-ask").click();
+    await check("guesswho ask sheet");
+    await page.getByTestId("gw-q-person").click();
+    await check("guesswho after answer");
+    await cmd(page, rooms.gw, { type: "END_MATCH" });
+    await expect(page.getByTestId("gw-match-results")).toBeVisible({ timeout: 15_000 });
+    await check("guesswho results");
+    await page.goto("/guesswho/practice");
+    await check("guesswho practice setup");
+    await page.getByTestId("gw-solo-start").click();
+    await expect(page.getByTestId("gw-board")).toBeVisible();
+    await page.waitForTimeout(4000);
+    await check("guesswho practice game");
+    await page.goto("/credits");
+    await check("credits");
+
     // Arabic (RTL) create page too.
     await context.addCookies([{ name: "s10_lang", value: "ar", url: test.info().project.use.baseURL as string }]);
     await page.goto("/create");
     await check("create (ar)");
     await page.goto("/");
     await check("home (ar)");
+    await page.goto("/guesswho/practice");
+    await page.getByTestId("gw-solo-start").click();
+    await expect(page.getByTestId("gw-board")).toBeVisible();
+    await page.waitForTimeout(4000);
+    await check("guesswho practice (ar)");
     await context.close();
     await guestContext.close();
   });

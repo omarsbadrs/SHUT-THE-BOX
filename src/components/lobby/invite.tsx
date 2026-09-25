@@ -47,7 +47,7 @@ export function InvitePanel({ code }: { code: string }) {
   const share = async () => {
     const text = t("shareText", { code });
     try {
-      if (navigator.share) await navigator.share({ title: "SHUT10", text, url });
+      if (navigator.share) await navigator.share({ title: "Games HUB", text, url });
       else await copy(`${text}\n${url}`, "link");
     } catch {
       // user cancelled

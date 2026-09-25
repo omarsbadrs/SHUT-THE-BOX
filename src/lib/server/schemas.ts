@@ -37,7 +37,7 @@ const profile = {
 
 export const createRoomSchema = z.object({
   ...profile,
-  game: z.enum(["shut10", "hangman"]).optional(),
+  game: z.enum(["shut10", "hangman", "guesswho"]).optional(),
   color: color.nullable().optional(),
   /** Validated per game by the registry (games.ts). */
   settings: z.record(z.string(), z.unknown()).optional(),

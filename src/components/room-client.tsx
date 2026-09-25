@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { GameSettings } from "@/game-engine";
 import type { HangmanSettings } from "@/games/hangman";
-import { isHangman } from "@/lib/client/games";
+import type { GuessWhoSettings } from "@/games/guesswho";
+import { isGuessWho, isHangman } from "@/lib/client/games";
 import { useRoom } from "@/lib/client/use-room";
 import { useI18n } from "@/lib/i18n/context";
 import { GameView } from "./game/game-view";
 import { DevPanel } from "./game/menu";
+import { GuessWhoView } from "./guesswho/guesswho-view";
+import { GuessWhoSettingsForm, GuessWhoSettingsSummary } from "./guesswho/settings";
 import { HangmanView } from "./hangman/hangman-view";
 import { HangmanSettingsForm, HangmanSettingsSummary } from "./hangman/settings";
 import { LobbyView } from "./lobby/lobby-view";
@@ -46,8 +49,8 @@ export function RoomClient({ code }: { code: string }) {
   }, [room.status, code, router]);
 
   // Keep the address bar meaningful without remounting: /room/CODE in the lobby, /game/MATCH during play.
-  // Hangman rooms always stay on /room/CODE (their matches are not archived under /game/…).
-  const matchId = state && !isHangman(state) && state.phase !== "ROOM_LOBBY" && state.phase !== "FINISHED" ? state.match?.id : null;
+  // Hangman and Guess Who rooms always stay on /room/CODE (only SHUT10 uses /game/…).
+  const matchId = state && !isHangman(state) && !isGuessWho(state) && state.phase !== "ROOM_LOBBY" && state.phase !== "FINISHED" ? state.match?.id : null;
   useEffect(() => {
     if (!state) return;
     const target = matchId ? `/game/${matchId}` : `/room/${state.code}`;
@@ -90,6 +93,24 @@ export function RoomClient({ code }: { code: string }) {
         />
       );
     return <HangmanView room={room} />;
+  }
+  if (isGuessWho(state)) {
+    if (state.phase === "ROOM_LOBBY")
+      return (
+        <LobbyView
+          room={room}
+          title={t("gameGuessWho")}
+          summary={<GuessWhoSettingsSummary settings={state.settings} />}
+          editorSteps={(draft, setDraft) =>
+            (["game", "rules"] as const).map((section) => ({
+              key: section,
+              title: t(`step_${section}`),
+              content: <GuessWhoSettingsForm section={section} value={draft as unknown as GuessWhoSettings} onChange={(s) => setDraft(s as unknown as Record<string, unknown>)} />,
+            }))
+          }
+        />
+      );
+    return <GuessWhoView room={room} />;
   }
   if (state.phase === "ROOM_LOBBY")
     return (

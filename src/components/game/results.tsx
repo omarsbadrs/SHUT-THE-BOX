@@ -266,7 +266,7 @@ export function ResultActions({
   const [copied, setCopied] = useState(false);
   const share = async () => {
     try {
-      if (navigator.share) await navigator.share({ title: "Games Hub", text: shareText, url: shareUrl ?? undefined });
+      if (navigator.share) await navigator.share({ title: "Games HUB", text: shareText, url: shareUrl ?? undefined });
       else {
         await navigator.clipboard.writeText(`${shareText} ${shareUrl ?? ""}`.trim());
         setCopied(true);

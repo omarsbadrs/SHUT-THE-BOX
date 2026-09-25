@@ -1,9 +1,10 @@
 import type { GameEvent, MatchPlayerStats, MatchResult, RoomPlayer, RoundResult, GameSettings, ServerRoomState as ShutServerState } from "@/game-engine";
 import type { HangmanServerState, HangmanSettings, HmEvent, HmMatchResult, HmRoundResult, HmScore } from "@/games/hangman";
+import type { GuessWhoServerState, GuessWhoSettings, GwEvent, GwMatchResult, GwRoundResult, GwScore } from "@/games/guesswho";
 
 /** Any game's server state; stores only rely on roomId / code / version. */
-export type ServerRoomState = ShutServerState | HangmanServerState;
-export type StoredEvent = GameEvent | HmEvent;
+export type ServerRoomState = ShutServerState | HangmanServerState | GuessWhoServerState;
+export type StoredEvent = GameEvent | HmEvent | GwEvent;
 
 type SummaryPlayer = Pick<RoomPlayer, "id" | "nickname" | "avatar" | "color" | "isBot">;
 
@@ -39,7 +40,23 @@ export interface HangmanMatchSummary {
   endedAt: number;
 }
 
-export type AnyMatchSummary = MatchSummary | HangmanMatchSummary;
+/** Immutable record of a finished Guess Who duel. */
+export interface GuessWhoMatchSummary {
+  game: "guesswho";
+  matchId: string;
+  roomId: string;
+  code: string;
+  number: number;
+  settings: GuessWhoSettings;
+  players: SummaryPlayer[];
+  scores: Record<string, GwScore>;
+  history: GwRoundResult[];
+  result: GwMatchResult;
+  startedAt: number;
+  endedAt: number;
+}
+
+export type AnyMatchSummary = MatchSummary | HangmanMatchSummary | GuessWhoMatchSummary;
 
 export interface AnalyticsRow {
   name: string;

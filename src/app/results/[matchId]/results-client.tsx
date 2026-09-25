@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FullScreenMessage, Loading } from "@/components/room-client";
 import { MatchResultsView } from "@/components/game/results";
+import { GuessWhoMatchResultsView } from "@/components/guesswho/results";
 import { HangmanMatchResultsView } from "@/components/hangman/results";
 import { apiFetch } from "@/lib/client/api";
 import { useI18n } from "@/lib/i18n/context";
@@ -47,6 +48,20 @@ export function ResultsClient({ matchId }: { matchId: string }) {
         settings={summary.settings}
         isHost={false}
         onNewRoom={() => router.push("/hangman/create")}
+        onExit={() => router.push("/")}
+        shareUrl={shareUrl}
+      />
+    );
+  if (summary.game === "guesswho")
+    return (
+      <GuessWhoMatchResultsView
+        players={summary.players}
+        scores={summary.scores}
+        result={summary.result}
+        history={summary.history}
+        settings={summary.settings}
+        isHost={false}
+        onNewRoom={() => router.push("/guesswho/create")}
         onExit={() => router.push("/")}
         shareUrl={shareUrl}
       />

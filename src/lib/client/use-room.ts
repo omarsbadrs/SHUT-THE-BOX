@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { HangmanPersonal } from "@/games/hangman";
 import { apiFetch, getConfig, sendCommand, serverNow, type ApiError, type RuntimeConfig } from "./api";
-import { applyAny, displayDelay, wakeAny, type AnyClientEvent, type AnyCommand, type AnyRoomState } from "./games";
+import { applyAny, displayDelay, refreshesPersonal, wakeAny, type AnyClientEvent, type AnyCommand, type AnyPersonal, type AnyRoomState } from "./games";
 import { openFeed, openPresence, type Feed } from "./realtime";
 
 /**
@@ -34,8 +33,8 @@ export interface RoomHandle {
   realtimeHealthy: boolean;
   config: RuntimeConfig | null;
   presence: Set<string>;
-  /** Viewer-only data from the server (Hangman: own secret word / private race board). */
-  personal: HangmanPersonal | null;
+  /** Viewer-only data from the server (Hangman: own secret word / race board; Guess Who: own secret card). */
+  personal: AnyPersonal | null;
   send: (command: AnyCommand) => Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: ApiError }>;
   subscribe: (fn: (e: AnyClientEvent, after: AnyRoomState) => void) => () => void;
   reload: () => void;
@@ -53,7 +52,7 @@ export function useRoom(code: string): RoomHandle {
   const [realtimeHealthy, setRealtimeHealthy] = useState(false);
   const [config, setConfig] = useState<RuntimeConfig | null>(null);
   const [presence, setPresence] = useState<Set<string>>(new Set());
-  const [personal, setPersonal] = useState<HangmanPersonal | null>(null);
+  const [personal, setPersonal] = useState<AnyPersonal | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   const authRef = useRef<AnyRoomState | null>(null);
@@ -78,6 +77,13 @@ export function useRoom(code: string): RoomHandle {
     setDisplay(state);
   }, []);
 
+  // Private data (e.g. a newly dealt Guess Who card) is not in the event feed: fetch it for this viewer.
+  const refreshPersonal = useCallback(() => {
+    void apiFetch<{ personal: AnyPersonal | null }>(`/api/rooms/${code}/state`).then((res) => {
+      if (alive.current && res.ok) setPersonal(res.personal ?? null);
+    });
+  }, [code]);
+
   const pump = useCallback(() => {
     if (pumpingRef.current) return;
     const step = () => {
@@ -89,6 +95,7 @@ export function useRoom(code: string): RoomHandle {
       }
       const backlog = queueRef.current.length;
       const after = applyAny(displayRef.current, next);
+      if (refreshesPersonal(next)) refreshPersonal();
       displayRef.current = after;
       setDisplay(after);
       for (const l of listeners.current) {
@@ -104,7 +111,7 @@ export function useRoom(code: string): RoomHandle {
     };
     pumpingRef.current = true;
     step();
-  }, []);
+  }, [refreshPersonal]);
 
   const resync = useCallback(async () => {
     if (resyncing.current) {
@@ -115,7 +122,7 @@ export function useRoom(code: string): RoomHandle {
     if (!base) return;
     resyncing.current = true;
     try {
-      const res = await apiFetch<{ events?: AnyClientEvent[]; reset?: AnyRoomState; personal?: HangmanPersonal | null; version: number; me?: string | null }>(
+      const res = await apiFetch<{ events?: AnyClientEvent[]; reset?: AnyRoomState; personal?: AnyPersonal | null; version: number; me?: string | null }>(
         `/api/rooms/${code}/events?since=${base.version}`,
       );
       if (!alive.current || !res.ok) return;
@@ -169,7 +176,7 @@ export function useRoom(code: string): RoomHandle {
     (async () => {
       const [cfg, res] = await Promise.all([
         getConfig(),
-        apiFetch<{ state: AnyRoomState; me: string | null; spectator: boolean; personal: HangmanPersonal | null }>(`/api/rooms/${code}/state`),
+        apiFetch<{ state: AnyRoomState; me: string | null; spectator: boolean; personal: AnyPersonal | null }>(`/api/rooms/${code}/state`),
       ]);
       if (cancelled) return;
       setConfig(cfg);
@@ -277,8 +284,8 @@ export function useRoom(code: string): RoomHandle {
     async (command) => {
       const res = await sendCommand(code, command);
       if (res.events?.length) ingestRef.current(res.events);
-      if (res.ok && res.data && "personal" in res.data) setPersonal(res.data.personal as HangmanPersonal);
-      if (res.ok && res.data && typeof res.data.secret === "string") setPersonal((p) => ({ race: p?.race ?? null, secret: res.data!.secret as string }));
+      if (res.ok && res.data && "personal" in res.data) setPersonal(res.data.personal as AnyPersonal);
+      if (res.ok && res.data && typeof res.data.secret === "string") setPersonal((p) => ({ ...p, secret: res.data!.secret as string }));
       if (res.ok && res.me !== undefined && res.me !== meRef.current) {
         meRef.current = res.me ?? null;
         setMe(res.me ?? null);

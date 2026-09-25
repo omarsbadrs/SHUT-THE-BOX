@@ -2,7 +2,8 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { cardImage } from "@/games/guesswho";
 import { Gallows, type GallowsState } from "@/components/hangman/gallows";
 import { Logo } from "@/components/logo";
 import { GameLink } from "@/components/ui/primitives";
@@ -21,79 +22,169 @@ function GallowsDemo() {
   return <Gallows wrong={wrong} lives={6} state={state} roundKey={step === 0 ? "a" : "b"} />;
 }
 
+const FAN = ["pharaohs/tutankhamun", "stars/soad_hosny", "food/koshary", "music_sport/mohamed_salah", "stars/adel_emam", "pharaohs/nefertiti"];
+
+/** A little fan of Guess Who cards that keeps reshuffling. */
+function CardFan() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setI((x) => (x + 1) % FAN.length), 1800);
+    return () => clearInterval(id);
+  }, []);
+  const cards = [FAN[i], FAN[(i + 1) % FAN.length], FAN[(i + 2) % FAN.length]];
+  return (
+    <div className="relative h-full w-full">
+      {cards.map((id, k) => (
+        <motion.div
+          key={id}
+          layout
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0, rotate: (k - 1) * 14, x: `${(k - 1) * 26}%` }}
+          transition={{ type: "spring", stiffness: 180, damping: 18 }}
+          className="gold-frame absolute inset-y-[4%] left-[26%] w-[48%] rounded-md p-[2px]"
+          style={{ zIndex: k === 1 ? 2 : 1 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={cardImage(id)} alt="" className="h-full w-full rounded-[5px] object-cover" />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+function GameCard({
+  testId,
+  frame,
+  surface,
+  title,
+  desc,
+  art,
+  primary,
+  secondary,
+  delay,
+}: {
+  testId: string;
+  frame: string;
+  surface: string;
+  title: ReactNode;
+  desc: string;
+  art: ReactNode;
+  primary: ReactNode;
+  secondary: ReactNode;
+  delay: number;
+}) {
+  return (
+    <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className={`${frame} shrink-0 rounded-[24px] p-[7px]`} data-testid={testId}>
+      <div className={`${surface} flex items-center gap-3 rounded-[18px] p-[clamp(8px,1.6dvh,14px)]`}>
+        <div className="min-w-0 flex-1">
+          {title}
+          <p className="mt-0.5 text-xs leading-snug font-semibold text-white/75 [@media(max-height:760px)]:hidden">{desc}</p>
+          <div className="mt-[clamp(6px,1.2dvh,10px)] grid grid-cols-2 gap-2">
+            {primary}
+            {secondary}
+          </div>
+        </div>
+        <div className="h-[clamp(60px,12dvh,100px)] w-[clamp(60px,12dvh,100px)] shrink-0">{art}</div>
+      </div>
+    </motion.section>
+  );
+}
+
+const BTN = "!h-[clamp(38px,6.4dvh,48px)] !px-2 text-[13px] leading-tight";
+
 export function HomeScreen() {
   const { t, lang, setLang } = useI18n();
   return (
     <main className="mx-auto flex h-dvh w-full max-w-[480px] flex-col overflow-hidden px-4 safe-top safe-bottom" onPointerDown={unlockAudio}>
-      <div className="flex shrink-0 justify-between pt-1">
+      <div className="flex shrink-0 items-center justify-between pt-1">
         <Link href="/profile" className="glass rounded-xl px-3 py-2 text-sm font-bold" aria-label={t("profile")}>
           👤
         </Link>
+        <motion.h1
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-[clamp(1.5rem,4.6dvh,2.1rem)] font-extrabold tracking-[0.12em] text-[#ffcf4a] drop-shadow-[0_3px_0_#6b4500]"
+          data-testid="hub-title"
+        >
+          {t("hubTitle")}
+        </motion.h1>
         <button type="button" onClick={() => setLang(lang === "en" ? "ar" : "en")} className="glass rounded-xl px-3 py-2 text-sm font-extrabold" data-testid="home-lang">
-          {lang === "en" ? "العربية" : "English"}
+          {lang === "en" ? "ع" : "EN"}
         </button>
       </div>
+      <p className="shrink-0 text-center text-sm font-bold text-white/60 [@media(max-height:700px)]:hidden">{t("hubTagline")}</p>
 
-      <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="shrink-0 py-3 text-center [@media(max-height:640px)]:py-1.5">
-        <h1 className="text-[clamp(1.9rem,6dvh,2.25rem)] font-extrabold tracking-[0.12em] text-[#ffcf4a] drop-shadow-[0_4px_0_#6b4500]" data-testid="hub-title">
-          {t("hubTitle")}
-        </h1>
-        <p className="mt-1 text-sm font-bold text-white/60 [@media(max-height:640px)]:hidden">{t("hubTagline")}</p>
-      </motion.header>
-
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3">
-        {/* SHUT THE BOX */}
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="wood rounded-[26px] p-2" data-testid="card-shut10">
-          <div className="felt rounded-[20px] p-3.5 [@media(max-height:640px)]:p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-2xl font-extrabold tracking-wide">{t("gameShut10")}</h2>
-                <p className="text-xs font-semibold text-white/75 [@media(max-height:640px)]:hidden">{t("gameShut10Desc")}</p>
-              </div>
-              <div className="shrink-0">
-                <Logo size={0.36} />
-              </div>
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[clamp(8px,1.6dvh,14px)] py-2">
+        <GameCard
+          testId="card-shut10"
+          frame="wood"
+          surface="felt"
+          delay={0.1}
+          title={<h2 className="text-[clamp(1.2rem,3.6dvh,1.5rem)] leading-tight font-extrabold tracking-wide">{t("gameShut10")}</h2>}
+          desc={t("gameShut10Desc")}
+          art={
+            <div className="flex h-full w-full items-center justify-center">
+              <Logo size={0.22} />
             </div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
-              <GameLink href="/create" size="md" className="!px-2 text-sm leading-tight" testId="home-create">
-                {t("playWithFriends")}
-              </GameLink>
-              <GameLink href="/practice" size="md" variant="dark" className="text-sm" testId="home-practice">
-                {t("practice")}
-              </GameLink>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* HANGMAN */}
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="wood rounded-[26px] p-2" data-testid="card-hangman">
-          <div className="chalkboard rounded-[20px] p-3.5 [@media(max-height:640px)]:p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="chalk text-4xl leading-none">{t("gameHangman")}</h2>
-                <p className="mt-1 text-xs font-semibold text-white/75 [@media(max-height:640px)]:hidden">{t("gameHangmanDesc")}</p>
-              </div>
-              <div className="h-[clamp(56px,13dvh,96px)] w-[clamp(56px,13dvh,96px)] shrink-0">
-                <GallowsDemo />
-              </div>
-            </div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
-              <GameLink href="/hangman/create" size="md" variant="green" className="!px-2 text-sm leading-tight" testId="home-hm-create">
-                {t("playWithFriends")}
-              </GameLink>
-              <GameLink href="/hangman/practice" size="md" variant="dark" className="text-sm" testId="home-hm-practice">
-                {t("practice")}
-              </GameLink>
-            </div>
-          </div>
-        </motion.section>
+          }
+          primary={
+            <GameLink href="/create" size="md" className={BTN} testId="home-create">
+              {t("playWithFriends")}
+            </GameLink>
+          }
+          secondary={
+            <GameLink href="/practice" size="md" variant="dark" className={BTN} testId="home-practice">
+              {t("practice")}
+            </GameLink>
+          }
+        />
+        <GameCard
+          testId="card-hangman"
+          frame="wood"
+          surface="chalkboard"
+          delay={0.2}
+          title={<h2 className="chalk text-[clamp(1.6rem,4.8dvh,2.2rem)] leading-none">{t("gameHangman")}</h2>}
+          desc={t("gameHangmanDesc")}
+          art={<GallowsDemo />}
+          primary={
+            <GameLink href="/hangman/create" size="md" variant="green" className={BTN} testId="home-hm-create">
+              {t("playWithFriends")}
+            </GameLink>
+          }
+          secondary={
+            <GameLink href="/hangman/practice" size="md" variant="dark" className={BTN} testId="home-hm-practice">
+              {t("practice")}
+            </GameLink>
+          }
+        />
+        <GameCard
+          testId="card-guesswho"
+          frame="gold-frame"
+          surface="lapis"
+          delay={0.3}
+          title={<h2 className="kufi gold-text text-[clamp(1.35rem,4dvh,1.8rem)] leading-tight font-bold">{t("gameGuessWho")}</h2>}
+          desc={t("gameGuessWhoDesc")}
+          art={<CardFan />}
+          primary={
+            <GameLink href="/guesswho/create" size="md" className={BTN} testId="home-gw-create">
+              {t("playWithFriends")}
+            </GameLink>
+          }
+          secondary={
+            <GameLink href="/guesswho/practice" size="md" variant="dark" className={BTN} testId="home-gw-practice">
+              {t("playVsBot")}
+            </GameLink>
+          }
+        />
       </div>
 
-      <div className="shrink-0 pt-3 pb-3 text-center">
-        <div className="mb-2 text-xs font-bold text-white/50 [@media(max-height:640px)]:hidden">{t("haveCode")}</div>
-        <GameLink href="/join" variant="blue" className="w-full" testId="home-join">
+      <div className="shrink-0 pb-2 text-center">
+        <GameLink href="/join" variant="blue" className="!h-[clamp(44px,7.5dvh,56px)] w-full" testId="home-join">
           {t("joinRoom")}
         </GameLink>
+        <Link href="/credits" className="mt-1.5 block text-[11px] font-bold text-white/40 underline [@media(max-height:600px)]:hidden" data-testid="home-credits">
+          {t("gw_credits")}
+        </Link>
       </div>
     </main>
   );

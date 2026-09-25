@@ -19,7 +19,8 @@ export function analyticsFor(state: AnyServerState, events: AnyEvent[]): Analyti
         break;
       case "MATCH_STARTED":
       case "HM_MATCH_STARTED":
-        if (events[i - 1]?.type === "REMATCH_STARTED" || events[i - 1]?.type === "HM_REMATCH") push("rematch");
+      case "GW_MATCH_STARTED":
+        if (events[i - 1]?.type === "REMATCH_STARTED" || events[i - 1]?.type === "HM_REMATCH" || events[i - 1]?.type === "GW_REMATCH") push("rematch");
         push("game_started", { players: e.playerIds.length, mode: e.settings.gameMode });
         break;
       case "ROUND_COMPLETED": {
@@ -28,6 +29,7 @@ export function analyticsFor(state: AnyServerState, events: AnyEvent[]): Analyti
         break;
       }
       case "HM_ROUND_ENDED":
+      case "GW_ROUND_ENDED":
         push("round_completed", { outcome: e.result.outcome });
         break;
       case "PLAYER_SHUT_BOX":
@@ -35,6 +37,7 @@ export function analyticsFor(state: AnyServerState, events: AnyEvent[]): Analyti
         break;
       case "MATCH_COMPLETED":
       case "HM_MATCH_ENDED":
+      case "GW_MATCH_ENDED":
         push("game_completed", { rounds: state.match?.history.length ?? 0, reason: e.result.reason });
         break;
       case "PLAYER_CONNECTION":

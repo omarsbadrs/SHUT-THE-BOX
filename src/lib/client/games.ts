@@ -1,24 +1,40 @@
 "use client";
 
 import { applyEvent, nextWakeAt, type Command, type GameEvent, type RoomState } from "@/game-engine";
-import { applyHmEvent, nextWakeHangman, type HangmanRoomState, type HmCommand, type HmEvent } from "@/games/hangman";
+import { applyHmEvent, nextWakeHangman, type HangmanPersonal, type HangmanRoomState, type HmCommand, type HmEvent } from "@/games/hangman";
+import { applyGwEvent, nextWakeGuessWho, type GuessWhoPersonal, type GuessWhoRoomState, type GwCommand, type GwEvent } from "@/games/guesswho";
 
 /** Client-side game adapter: the same reducers the server uses, picked by `state.game`. */
 
-export type AnyRoomState = RoomState | HangmanRoomState;
-export type AnyClientEvent = GameEvent | HmEvent;
-export type AnyCommand = Command | HmCommand;
+export type AnyRoomState = RoomState | HangmanRoomState | GuessWhoRoomState;
+export type AnyClientEvent = GameEvent | HmEvent | GwEvent;
+export type AnyCommand = Command | HmCommand | GwCommand;
+/** Viewer-only data from the server; each game fills its own fields. */
+export type AnyPersonal = Partial<HangmanPersonal> & Partial<GuessWhoPersonal>;
 
 export function isHangman(state: AnyRoomState | null | undefined): state is HangmanRoomState {
   return !!state && (state as HangmanRoomState).game === "hangman";
 }
 
+export function isGuessWho(state: AnyRoomState | null | undefined): state is GuessWhoRoomState {
+  return !!state && (state as GuessWhoRoomState).game === "guesswho";
+}
+
 export function applyAny(state: AnyRoomState, e: AnyClientEvent): AnyRoomState {
-  return isHangman(state) ? applyHmEvent(state, e as HmEvent) : applyEvent(state, e as GameEvent);
+  if (isHangman(state)) return applyHmEvent(state, e as HmEvent);
+  if (isGuessWho(state)) return applyGwEvent(state, e as GwEvent);
+  return applyEvent(state as RoomState, e as GameEvent);
 }
 
 export function wakeAny(state: AnyRoomState, now: number): number | null {
-  return isHangman(state) ? nextWakeHangman(state, now) : nextWakeAt(state, now);
+  if (isHangman(state)) return nextWakeHangman(state, now);
+  if (isGuessWho(state)) return nextWakeGuessWho(state, now);
+  return nextWakeAt(state as RoomState, now);
+}
+
+/** Events after which this viewer's private data changed (e.g. a new secret card was dealt). */
+export function refreshesPersonal(e: AnyClientEvent): boolean {
+  return e.type === "GW_ROUND_STARTED";
 }
 
 /** How long each event holds the presentation queue (animations breathe; backlogs fast-forward). */
@@ -45,6 +61,11 @@ export function displayDelay(e: AnyClientEvent, backlog: number): number {
       return 950;
     case "HM_ROUND_ENDED":
       return 2600; // hanged sway / rescue animation before results
+    case "GW_ASKED":
+    case "GW_FREE_ANSWERED":
+      return 900; // the answer stamp lands
+    case "GW_ROUND_ENDED":
+      return 2400; // card reveal before results
     default:
       return 0;
   }
