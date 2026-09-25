@@ -146,9 +146,10 @@ export function HomeScreen() {
   const { t, lang, setLang } = useI18n();
   return (
     <main className="mx-auto flex h-dvh w-full max-w-[520px] flex-col overflow-hidden px-3 safe-top safe-bottom" onPointerDown={unlockAudio}>
-      <div className="flex shrink-0 items-center justify-between pt-1">
-        <div className="flex gap-1.5">
-          <Link href="/profile" className="glass rounded-xl px-3 py-2 text-sm font-bold" aria-label={t("profile")}>
+      {/* three columns so the title is centred on the screen, whatever sits beside it */}
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pt-1">
+        <div className="flex gap-1 justify-self-start">
+          <Link href="/profile" className="glass flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold" aria-label={t("profile")}>
             👤
           </Link>
           <ThemeButton />
@@ -156,12 +157,12 @@ export function HomeScreen() {
         <motion.h1
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-[clamp(1.4rem,4.4dvh,2rem)] font-extrabold tracking-[0.12em] text-[#ffcf4a] drop-shadow-[0_3px_0_#6b4500]"
+          className="text-center text-[clamp(1.05rem,min(4.4dvh,5vw),1.9rem)] font-extrabold tracking-[0.12em] whitespace-nowrap text-[#ffcf4a] drop-shadow-[0_3px_0_#6b4500]"
           data-testid="hub-title"
         >
           {t("hubTitle")}
         </motion.h1>
-        <button type="button" onClick={() => setLang(lang === "en" ? "ar" : "en")} className="glass rounded-xl px-3 py-2 text-sm font-extrabold" data-testid="home-lang">
+        <button type="button" onClick={() => setLang(lang === "en" ? "ar" : "en")} className="glass flex h-10 w-10 items-center justify-center justify-self-end rounded-xl text-sm font-extrabold" data-testid="home-lang">
           {lang === "en" ? "ع" : "EN"}
         </button>
       </div>

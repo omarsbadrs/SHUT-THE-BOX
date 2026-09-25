@@ -31,6 +31,9 @@ export const metadata: Metadata = {
   icons: { icon: "/icons/192", apple: "/icons/180" },
 };
 
+/** iPhone home-screen apps get a viewport short by the status bar: size the app to the real screen instead. */
+const APP_HEIGHT_SCRIPT = "(function(){var d=document.documentElement;function f(){var n=window.navigator;var sa=n.standalone===true||(window.matchMedia&&matchMedia(\"(display-mode: standalone)\").matches);if(!sa||!/iPhone|iPod/.test(n.userAgent)){d.style.removeProperty(\"--app-h\");return}var land=window.innerWidth>window.innerHeight;var s=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height);d.style.setProperty(\"--app-h\",Math.max(window.innerHeight,s)+\"px\")}f();addEventListener(\"resize\",f);addEventListener(\"orientationchange\",function(){setTimeout(f,250)})})();";
+
 export async function generateViewport(): Promise<Viewport> {
   const theme = themeById((await cookies()).get(THEME_COOKIE)?.value);
   return { themeColor: theme.night, width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false, viewportFit: "cover" };
@@ -42,6 +45,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const theme = themeById(jar.get(THEME_COOKIE)?.value);
   return (
     <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} data-theme={theme.id} style={themeVars(theme) as React.CSSProperties} className={`${baloo.variable} ${chalkLatin.variable} ${chalkArabic.variable} ${kufi.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: APP_HEIGHT_SCRIPT }} />
+      </head>
       <body className="antialiased">
         <I18nProvider initialLang={lang}>{children}</I18nProvider>
         <ServiceWorker />

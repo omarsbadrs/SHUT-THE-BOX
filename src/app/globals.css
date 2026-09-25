@@ -55,32 +55,55 @@
   --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='60'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.012 .5' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 .1  0 0 0 0 .05  0 0 0 0 0  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
 }
 
+/*
+ * App height. Normally the dynamic viewport; on iPhone home-screen apps iOS
+ * reports a viewport that is short by the status bar and leaves an empty strip
+ * at the bottom, so a tiny script in the layout sets --app-h to the real screen
+ * height there.
+ */
 html,
 body {
-  background: var(--color-night);
   color: var(--color-cream);
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   /* The game never scrolls: every screen is laid out to fit the viewport. */
-  height: 100%;
+  height: var(--app-h, 100%);
   overflow: hidden;
+}
+
+/* The background lives on the root so it paints the whole screen, edge to edge. */
+html {
+  background:
+    radial-gradient(120% 70% at 50% -10%, var(--glow-top, #1d4a33) 0%, transparent 60%),
+    radial-gradient(80% 60% at 50% 110%, var(--glow-bottom, #12301f) 0%, transparent 70%),
+    var(--color-night);
+  background-color: var(--color-night);
+}
+body {
+  font-family: var(--font-sans);
+  background: transparent;
+}
+
+/* Full-screen layouts and overlays use the app height (see above). */
+.h-dvh {
+  height: var(--app-h, 100dvh);
+}
+.min-h-dvh {
+  min-height: var(--app-h, 100dvh);
+}
+.fixed.inset-0 {
+  bottom: auto;
+  height: var(--app-h, 100%);
 }
 
 /* Opt-in scrolling for tools that are not part of the game (admin). */
 .scroll-page {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-h, 100%);
   overflow-y: auto;
-}
-
-body {
-  min-height: 100dvh;
-  font-family: var(--font-sans);
-  background:
-    radial-gradient(120% 70% at 50% -10%, var(--glow-top, #1d4a33) 0%, transparent 60%),
-    radial-gradient(80% 60% at 50% 110%, var(--glow-bottom, #12301f) 0%, transparent 70%),
-    var(--color-night);
-  background-attachment: fixed;
 }
 
 button {

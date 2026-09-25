@@ -61,7 +61,7 @@ export function ThemeButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="glass rounded-xl px-3 py-2 text-sm font-bold" aria-label={t("theme")} data-testid="theme-button">
+      <button type="button" onClick={() => setOpen(true)} className="glass flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold" aria-label={t("theme")} data-testid="theme-button">
         🎨
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={t("theme")}>
